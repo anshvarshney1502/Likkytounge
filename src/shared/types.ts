@@ -31,14 +31,12 @@ export interface Folder {
 
 export interface Settings {
   theme: "system" | "light" | "dark";
-  /** Show the on-page launcher button on supported AI sites. */
+  /** Show the Pikachu launcher on supported AI sites. */
   showLauncher: boolean;
-  /** Keyboard shortcut to open the picker on the page. */
+  /** Keyboard shortcut to open the Generate/Upload menu on the page. */
   launcherHotkey: string; // e.g. "Alt+K"
-  /** Insert mode: replace input, or append at cursor. */
+  /** How Upload Context inserts into the destination chat input. */
   insertMode: "replace" | "append" | "prepend";
-  /** Auto-focus the search box when the picker opens. */
-  focusSearchOnOpen: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -46,7 +44,6 @@ export const DEFAULT_SETTINGS: Settings = {
   showLauncher: true,
   launcherHotkey: "Alt+K",
   insertMode: "append",
-  focusSearchOnOpen: true,
 };
 
 /** Portable backup shape (JSON). */

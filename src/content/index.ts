@@ -1,4 +1,4 @@
-import { boot, openPickerFromOutside } from "./overlay";
+import { boot, openMenuFromOutside } from "./overlay";
 
 declare global {
   interface Window { __likkyContentLoaded?: boolean }
@@ -24,7 +24,7 @@ if (!window.__likkyContentLoaded) {
 
   chrome.runtime.onMessage.addListener((msg, _s, sendResponse) => {
     if (msg?.type === "OPEN_PICKER") {
-      openPickerFromOutside();
+      openMenuFromOutside();
       sendResponse({ ok: true });
       return false;
     }

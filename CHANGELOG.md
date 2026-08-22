@@ -7,10 +7,27 @@ semantic versioning once it reaches 1.0.
 ## [Unreleased]
 
 ### Planned
+- Swap the placeholder inline-SVG Pikachu for the real provided artwork (`public/pikachu.png`) — one-line change once the asset is available.
 - Per-Capsule versioning & rollback.
 - Team folders with color labels.
 - More Cook recipes (few-shot templates, tone/register presets).
 - Additional site adapters (Copilot, Grok, Qwen).
+
+## [0.4.0] — 2026-08-23
+
+### Added — Generate Context / Upload Context
+- **New on-page launcher:** the old capsule-picker circle is replaced by a Pikachu button. Clicking Pikachu directly runs **Generate Context**; a **+** button opens a menu with both **Generate Context** and **Upload Context**.
+- **Generate Context:** detects the current LLM (ChatGPT, Claude, Gemini, DeepSeek), auto-scrolls the conversation container to load lazy/paginated/infinite-scroll history, extracts every user and assistant message in order, formats it as `# Conversation Context` Markdown, and stores it as the single "latest context" (shared across every AI site via the background service worker — not per-site, since content scripts can't share IndexedDB across origins).
+- **Upload Context:** on a different supported LLM, retrieves the latest generated context automatically (no file picker, no drag-and-drop, no manual copy-paste) and inserts it into that platform's chat input via `insertIntoInput`, chunking automatically for very large contexts while preserving order and verifying the insertion actually landed.
+- **Thunderbolt animation:** a short (~700ms) radiating-bolt burst plays on Pikachu only for Generate Context, with a pulsing "charging" state while extraction is in progress. It never plays for Upload Context.
+- **Honest truncation reporting:** if the scroll-loader hits a safety cap (iteration or time limit) before confirming it reached the top of the conversation, the result is marked `truncated: true` with a human-readable reason — never silently reported as complete.
+- **Honest transfer verification:** after inserting context into a destination input, the actual inserted length is compared against the expected length; a shortfall is reported as a partial transfer rather than a false success.
+- Platform adapter architecture for context extraction/upload (`src/context/extract/platforms.ts`), separate from (and coexisting with) the existing Capsule adapters.
+- New tests: Markdown formatting order/never-truncates, scroll-loader stabilization/time-cap/iteration-cap behavior, and chunk-splitting never drops characters.
+
+### Changed
+- Settings: removed the now-unused "auto-focus search" toggle (the picker's search box no longer exists); relabeled the hotkey and insert-mode settings for the Generate/Upload workflow.
+- About page copy updated to accurately describe that Generate Context reads on-page conversation text (previously claimed the on-page UI was "read-nothing" — no longer true now that Context exists; still never leaves the device except into the extension's own local storage).
 
 ## [0.3.0] — 2026-08-23
 

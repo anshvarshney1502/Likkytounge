@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Likky Tounge",
-  "version": "0.3.0",
-  "description": "Save reusable context Capsules and inject them into any AI chat with one click. Privacy-first, open source, 100% local.",
+  "version": "0.4.0",
+  "description": "Pikachu captures your whole AI conversation and carries it to any other supported LLM with one click. Privacy-first, open source, 100% local.",
   "action": {
     "default_popup": "popup.html",
     "default_title": "Open Likky Tounge",

@@ -2,6 +2,7 @@ import { db } from "../storage/db";
 import { getSettings, setSettings } from "../shared/settings-store";
 import type { Capsule, Folder } from "../shared/types";
 import { randomId } from "../utils/id";
+import { getLatestContext, setLatestContext } from "../context/store";
 
 // --- context menu: right-click selected text -> save as capsule ---
 const MENU_ID = "likky-save-selection";
@@ -75,6 +76,11 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
           return sendResponse({ ok: true });
         case "OPEN_LIBRARY":
           await chrome.tabs.create({ url: chrome.runtime.getURL("library.html") });
+          return sendResponse({ ok: true });
+        case "GET_LATEST_CONTEXT":
+          return sendResponse(await getLatestContext());
+        case "SET_LATEST_CONTEXT":
+          await setLatestContext(msg.context);
           return sendResponse({ ok: true });
         default:
           return sendResponse({ error: "unknown" });

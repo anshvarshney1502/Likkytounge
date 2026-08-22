@@ -1,6 +1,6 @@
 export const APP_NAME = "Likky Tounge";
-export const APP_TAGLINE = "Capsules of context, ready in any AI chat.";
-export const APP_VERSION = "0.3.0";
+export const APP_TAGLINE = "Pikachu remembers your conversation, and carries it to any other AI chat.";
+export const APP_VERSION = "0.4.0";
 export const APP_REPO = "https://github.com/anshvarshney1502/Likkytounge";
 export const SUPPORTED_HOST_MATCHES = [
   "https://chatgpt.com/*",

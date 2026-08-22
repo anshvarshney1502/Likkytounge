@@ -1,152 +1,41 @@
-// Floating launcher + capsule picker overlay rendered inside a Shadow DOM so
-// page CSS can never interfere. Text-only injection: click to insert, or
-// drag a capsule directly onto the chat input.
+// Pikachu launcher: the on-page UI for the two core actions —
+// Generate Context (capture the full conversation) and Upload Context
+// (auto-transfer the latest generated context into this LLM). This replaces
+// the old capsule-picker overlay entirely. Capsules (unrelated feature) are
+// still managed from the popup/library — this overlay is Context-only.
 
-import type { Capsule, Folder, Settings } from "../shared/types";
-import { findChatInput, insertIntoInput } from "./insert";
-// Inlined at build time so we only need one content-script bundle.
+import type { Settings } from "../shared/types";
+import type { GenerateProgress, UploadProgress } from "../context/types";
+import { generateContext } from "../context/generate";
+import { uploadContext } from "../context/upload";
+import { PIKACHU_SVG } from "./pikachu-icon";
+import { BOLT_SVG } from "./thunderbolt-icon";
 import overlayCss from "./overlay.css";
 
 const HOST_ID = "likky-tounge-host";
-const MOUNT_ATTR = "data-likky-tounge-mounted";
-
-interface State {
-  capsules: Capsule[];
-  folders: Folder[];
-  settings: Settings;
-  query: string;
-  folderId: string | "" | "recent";
-}
-
-const state: State = {
-  capsules: [],
-  folders: [],
-  settings: null as unknown as Settings,
-  query: "",
-  folderId: "recent",
-};
 
 let root: ShadowRoot | null = null;
+let rootEl: HTMLElement | null = null;
+let menuEl: HTMLElement | null = null;
 let panelEl: HTMLElement | null = null;
-let backdropEl: HTMLElement | null = null;
-let listEl: HTMLElement | null = null;
-let searchEl: HTMLInputElement | null = null;
-let toastEl: HTMLElement | null = null;
+let panelTitleEl: HTMLElement | null = null;
+let stepsEl: HTMLElement | null = null;
+let resultEl: HTMLElement | null = null;
+let pikachuEl: HTMLElement | null = null;
+let boltsEl: HTMLElement | null = null;
+let settingsCache: Settings | null = null;
 
-async function loadData(): Promise<void> {
-  const [capsulesRes, foldersRes, settingsRes] = await Promise.all([
-    chrome.runtime.sendMessage({ type: "LIST_CAPSULES" }),
-    chrome.runtime.sendMessage({ type: "LIST_FOLDERS" }),
-    chrome.runtime.sendMessage({ type: "GET_SETTINGS" }),
-  ]);
-  state.capsules = (capsulesRes as Capsule[]) ?? [];
-  state.folders = (foldersRes as Folder[]) ?? [];
-  state.settings = settingsRes as Settings;
-}
-
-function filtered(): Capsule[] {
-  const q = state.query.trim().toLowerCase();
-  let items = state.capsules;
-  if (state.folderId === "recent") {
-    items = [...items].sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1)).slice(0, 20);
-  } else if (state.folderId) {
-    items = items.filter((c) => c.folderId === state.folderId);
-  }
-  if (q) {
-    items = items.filter(
-      (c) =>
-        c.title.toLowerCase().includes(q) ||
-        c.body.toLowerCase().includes(q) ||
-        c.summary.toLowerCase().includes(q) ||
-        c.tags.some((t) => t.toLowerCase().includes(q)),
-    );
-  }
-  return items;
+async function getSettings(): Promise<Settings> {
+  if (settingsCache) return settingsCache;
+  settingsCache = (await chrome.runtime.sendMessage({ type: "GET_SETTINGS" })) as Settings;
+  return settingsCache;
 }
 
 function esc(s: string): string {
   return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 }
 
-function renderFolders(): string {
-  const folderOpts = state.folders.map((f) => `<option value="${esc(f.id)}">${esc(f.name)}</option>`).join("");
-  return `
-    <select id="folder" class="mode-select" aria-label="Folder">
-      <option value="recent">⏱ Recent</option>
-      <option value="">📚 All capsules</option>
-      ${folderOpts}
-    </select>`;
-}
-
-function renderList(): void {
-  if (!listEl) return;
-  const items = filtered();
-  if (!items.length) {
-    listEl.innerHTML = `<div class="empty">
-      No capsules ${state.query ? "match your search" : "yet"}.<br>
-      <a id="open-lib">Open library →</a>
-    </div>`;
-    return;
-  }
-  listEl.innerHTML = items
-    .map((c) => {
-      const folderName =
-        state.folders.find((f) => f.id === c.folderId)?.name ?? "Uncategorized";
-      const preview = (c.summary || c.body).replace(/\s+/g, " ").slice(0, 100);
-      return `
-      <div class="capsule" draggable="true" data-id="${esc(c.id)}" tabindex="0" role="button" aria-label="Insert ${esc(c.title)}">
-        <div><span class="pill">${esc(folderName)}</span><span class="title">${esc(c.title)}</span></div>
-        <div class="sub">${esc(preview)}${(c.summary || c.body).length > 100 ? "…" : ""}</div>
-      </div>`;
-    })
-    .join("");
-}
-
-function toast(msg: string, err = false): void {
-  if (!toastEl) return;
-  toastEl.textContent = msg;
-  toastEl.className = "toast " + (err ? "err show" : "show");
-  setTimeout(() => (toastEl!.className = "toast" + (err ? " err" : "")), 1600);
-}
-
-async function insertCapsule(c: Capsule): Promise<void> {
-  const input = findChatInput();
-  if (!input) return toast("No chat input detected on this page.", true);
-  const ok = insertIntoInput(input, c.body, state.settings.insertMode);
-  if (!ok) return toast("Could not insert into this input.", true);
-  toast(`Inserted "${c.title}"`);
-  await chrome.runtime.sendMessage({ type: "BUMP_USAGE", id: c.id });
-  close();
-}
-
-function open(): void {
-  if (!root) mount();
-  panelEl!.classList.add("open");
-  backdropEl!.classList.add("open");
-  if (state.settings?.focusSearchOnOpen) setTimeout(() => searchEl?.focus(), 0);
-  void refresh();
-}
-function close(): void {
-  panelEl?.classList.remove("open");
-  backdropEl?.classList.remove("open");
-}
-
-async function refresh(): Promise<void> {
-  await loadData();
-  // Re-sync folder dropdown options (they might have changed).
-  const hdr = root!.querySelector(".header") as HTMLElement;
-  const currentFolderVal = state.folderId;
-  hdr.querySelector("#folder")?.remove();
-  hdr.insertAdjacentHTML("beforeend", renderFolders());
-  const sel = hdr.querySelector<HTMLSelectElement>("#folder")!;
-  sel.value = String(currentFolderVal);
-  sel.addEventListener("change", () => {
-    state.folderId = sel.value as State["folderId"];
-    renderList();
-  });
-  renderList();
-}
-
+// ---------------------------------------------------------------- mount --
 function mount(): void {
   if (document.getElementById(HOST_ID)) return;
   const host = document.createElement("div");
@@ -158,122 +47,92 @@ function mount(): void {
   style.textContent = overlayCss;
   root.appendChild(style);
 
-  const launcher = document.createElement("button");
-  launcher.className = "launcher";
-  launcher.title = "Open Likky Tounge (Alt+K)";
-  launcher.setAttribute("aria-label", "Open Likky Tounge");
-  launcher.textContent = "🧪";
-  launcher.addEventListener("click", () => {
-    panelEl!.classList.contains("open") ? close() : open();
-  });
-  root.appendChild(launcher);
-
-  backdropEl = document.createElement("div");
-  backdropEl.className = "backdrop";
-  backdropEl.addEventListener("click", close);
-  root.appendChild(backdropEl);
-
-  panelEl = document.createElement("div");
-  panelEl.className = "panel";
-  panelEl.setAttribute("role", "dialog");
-  panelEl.setAttribute("aria-label", "Likky Tounge capsule picker");
-  panelEl.innerHTML = `
-    <div class="header">
-      <span class="brand"><span class="brand-dot"></span>Likky Tounge</span>
-      <button class="close" aria-label="Close" title="Close">✕</button>
-      ${renderFolders()}
+  rootEl = document.createElement("div");
+  rootEl.className = "lk-root";
+  rootEl.innerHTML = `
+    <div class="lk-menu" id="lk-menu" role="menu" aria-label="Likky Tounge actions">
+      <button type="button" data-action="generate" role="menuitem">
+        <span class="lk-emoji">⚡</span>
+        <span><strong>Generate Context</strong><span class="lk-menu-sub">Capture this entire conversation</span></span>
+      </button>
+      <button type="button" data-action="upload" role="menuitem">
+        <span class="lk-emoji">⬆️</span>
+        <span><strong>Upload Context</strong><span class="lk-menu-sub">Send the latest context here</span></span>
+      </button>
     </div>
-    <div class="search"><input type="search" placeholder="Search capsules… (Alt+K to open)" aria-label="Search capsules"></div>
-    <div class="list" role="listbox"></div>
-    <div class="footer">
-      <a id="open-lib">📚 Open library</a>
-      <span>Click to insert · Drag onto input · Esc to close</span>
+    <div class="lk-panel" id="lk-panel" role="status" aria-live="polite">
+      <button class="lk-panel-close" id="lk-panel-close" aria-label="Close">✕</button>
+      <div class="lk-panel-title" id="lk-panel-title"></div>
+      <ul class="lk-steps" id="lk-steps"></ul>
+      <div class="lk-result" id="lk-result" hidden></div>
+    </div>
+    <div class="lk-pikachu-wrap">
+      <button class="lk-pikachu" id="lk-pikachu" aria-label="Likky Tounge: click to Generate Context, or use + for more options" title="Generate Context">
+        ${PIKACHU_SVG}
+        <div class="lk-bolts" id="lk-bolts">
+          <div class="lk-bolt">${BOLT_SVG}</div>
+          <div class="lk-bolt">${BOLT_SVG}</div>
+          <div class="lk-bolt">${BOLT_SVG}</div>
+          <div class="lk-bolt">${BOLT_SVG}</div>
+          <div class="lk-bolt">${BOLT_SVG}</div>
+        </div>
+      </button>
+      <button class="lk-plus" id="lk-plus" aria-label="Open Likky Tounge menu" title="Generate or Upload context">+</button>
     </div>
   `;
-  root.appendChild(panelEl);
+  root.appendChild(rootEl);
 
-  toastEl = document.createElement("div");
-  toastEl.className = "toast";
-  root.appendChild(toastEl);
+  menuEl = root.getElementById("lk-menu");
+  panelEl = root.getElementById("lk-panel");
+  panelTitleEl = root.getElementById("lk-panel-title");
+  stepsEl = root.getElementById("lk-steps");
+  resultEl = root.getElementById("lk-result");
+  pikachuEl = root.getElementById("lk-pikachu");
+  boltsEl = root.getElementById("lk-bolts");
 
-  listEl = panelEl.querySelector(".list");
-  searchEl = panelEl.querySelector("input");
-  searchEl!.addEventListener("input", () => {
-    state.query = searchEl!.value;
-    renderList();
+  pikachuEl!.addEventListener("click", () => {
+    closeMenu();
+    void runGenerate();
   });
-  panelEl.querySelector(".close")!.addEventListener("click", close);
-  const folderSel = panelEl.querySelector<HTMLSelectElement>("#folder")!;
-  folderSel.addEventListener("change", () => {
-    state.folderId = folderSel.value as State["folderId"];
-    renderList();
+  root.getElementById("lk-plus")!.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleMenu();
   });
-
-  // Delegated click on capsule -> insert. Delegated dragstart -> set text/plain.
-  listEl!.addEventListener("click", (e) => {
-    const target = (e.target as HTMLElement).closest<HTMLElement>(".capsule");
-    if (!target) {
-      const openLib = (e.target as HTMLElement).closest<HTMLElement>("#open-lib");
-      if (openLib) void chrome.runtime.sendMessage({ type: "OPEN_LIBRARY" }).catch(() => {
-        window.open(chrome.runtime.getURL("library.html"), "_blank");
-      });
-      return;
-    }
-    const c = state.capsules.find((x) => x.id === target.dataset.id);
-    if (c) void insertCapsule(c);
-  });
-  listEl!.addEventListener("keydown", (e) => {
-    const key = (e as KeyboardEvent).key;
-    if (key !== "Enter" && key !== " ") return;
-    const target = (e.target as HTMLElement).closest<HTMLElement>(".capsule");
-    if (!target) return;
-    e.preventDefault();
-    const c = state.capsules.find((x) => x.id === target.dataset.id);
-    if (c) void insertCapsule(c);
-  });
-  listEl!.addEventListener("dragstart", (e) => {
-    const target = (e.target as HTMLElement).closest<HTMLElement>(".capsule");
-    if (!target) return;
-    const c = state.capsules.find((x) => x.id === target.dataset.id);
-    if (!c) return;
-    const dt = (e as DragEvent).dataTransfer;
-    if (!dt) return;
-    dt.effectAllowed = "copy";
-    dt.setData("text/plain", c.body);
-    dt.setData("text/likky-capsule-id", c.id);
+  root.getElementById("lk-panel-close")!.addEventListener("click", closePanel);
+  menuEl!.addEventListener("click", (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-action]");
+    if (!btn) return;
+    closeMenu();
+    if (btn.dataset.action === "generate") void runGenerate();
+    else if (btn.dataset.action === "upload") void runUpload();
   });
 
+  document.addEventListener("click", onOutsideClick, true);
   document.addEventListener("keydown", onGlobalKey, true);
-
-  // Watch the whole page for drops so we can bump usage when the capsule
-  // gets dropped somewhere else (chat input handles the actual insertion).
-  document.addEventListener("drop", (e) => {
-    const id = e.dataTransfer?.getData("text/likky-capsule-id");
-    if (id) void chrome.runtime.sendMessage({ type: "BUMP_USAGE", id });
-  }, true);
-
-  document.documentElement.setAttribute(MOUNT_ATTR, "1");
 }
 
 function unmount(): void {
   document.getElementById(HOST_ID)?.remove();
+  document.removeEventListener("click", onOutsideClick, true);
   document.removeEventListener("keydown", onGlobalKey, true);
-  root = panelEl = backdropEl = listEl = toastEl = null;
-  searchEl = null;
-  document.documentElement.removeAttribute(MOUNT_ATTR);
+  root = rootEl = menuEl = panelEl = panelTitleEl = stepsEl = resultEl = pikachuEl = boltsEl = null;
 }
 
+function onOutsideClick(): void {
+  closeMenu();
+}
 function onGlobalKey(e: KeyboardEvent): void {
-  if (e.key === "Escape" && panelEl?.classList.contains("open")) {
-    close();
+  if (e.key === "Escape") {
+    closeMenu();
+    closePanel();
     return;
   }
-  if (matchesHotkey(e, state.settings?.launcherHotkey || "Alt+K")) {
+  const spec = settingsCache?.launcherHotkey || "Alt+K";
+  if (matchesHotkey(e, spec)) {
     e.preventDefault();
-    panelEl?.classList.contains("open") ? close() : open();
+    toggleMenu();
   }
 }
-
 function matchesHotkey(e: KeyboardEvent, spec: string): boolean {
   const parts = spec.split("+").map((p) => p.trim().toLowerCase());
   const key = parts.pop() ?? "";
@@ -290,19 +149,147 @@ function matchesHotkey(e: KeyboardEvent, spec: string): boolean {
   );
 }
 
+function toggleMenu(): void {
+  menuEl!.classList.contains("open") ? closeMenu() : openMenu();
+}
+function openMenu(): void {
+  closePanel();
+  menuEl!.classList.add("open");
+}
+function closeMenu(): void {
+  menuEl?.classList.remove("open");
+}
+function openPanel(): void {
+  closeMenu();
+  panelEl!.classList.add("open");
+}
+function closePanel(): void {
+  panelEl?.classList.remove("open");
+}
+
+// ------------------------------------------------------------- progress --
+const GENERATE_STAGES: Array<{ key: GenerateProgress["stage"]; label: string }> = [
+  { key: "detect", label: "Detect platform" },
+  { key: "scroll", label: "Load full history" },
+  { key: "extract", label: "Extract messages" },
+  { key: "format", label: "Format as Markdown" },
+  { key: "store", label: "Save latest context" },
+];
+const UPLOAD_STAGES: Array<{ key: UploadProgress["stage"]; label: string }> = [
+  { key: "detect", label: "Detect platform" },
+  { key: "locate-input", label: "Locate chat input" },
+  { key: "transfer", label: "Transfer context" },
+];
+
+function renderSteps(stages: Array<{ key: string; label: string }>, activeKey: string, liveLabel?: string): void {
+  const activeIndex = stages.findIndex((s) => s.key === activeKey);
+  stepsEl!.innerHTML = stages
+    .map((s, i) => {
+      const state = i < activeIndex ? "ok" : i === activeIndex ? "active" : "";
+      const mark = i < activeIndex ? "✓" : i === activeIndex ? "…" : "○";
+      const label = i === activeIndex && liveLabel ? esc(liveLabel) : esc(s.label);
+      return `<li class="${state}">${mark} ${label}</li>`;
+    })
+    .join("");
+}
+function markAllDone(stages: Array<{ key: string; label: string }>): void {
+  stepsEl!.innerHTML = stages.map((s) => `<li class="ok">✓ ${esc(s.label)}</li>`).join("");
+}
+
+function showResult(kind: "ok" | "err" | "warn", html: string): void {
+  resultEl!.hidden = false;
+  resultEl!.className = `lk-result ${kind}`;
+  resultEl!.innerHTML = html;
+}
+
+// -------------------------------------------------------------- actions --
+async function runGenerate(): Promise<void> {
+  openPanel();
+  panelTitleEl!.textContent = "⚡ Generating context…";
+  resultEl!.hidden = true;
+  renderSteps(GENERATE_STAGES, "detect");
+  pikachuEl!.classList.remove("burst", "shake");
+  pikachuEl!.classList.add("charging");
+
+  const result = await generateContext((p) => {
+    renderSteps(GENERATE_STAGES, p.stage, p.label);
+  });
+
+  pikachuEl!.classList.remove("charging");
+
+  if (result.success) {
+    markAllDone(GENERATE_STAGES);
+    boltsEl!.classList.add("active");
+    pikachuEl!.classList.add("burst");
+    setTimeout(() => {
+      pikachuEl?.classList.remove("burst");
+      boltsEl?.classList.remove("active");
+    }, 700);
+
+    const c = result.context;
+    if (c.truncated) {
+      showResult(
+        "warn",
+        `<strong>⚠ Context saved, but possibly incomplete.</strong><br>Captured ${c.messageCount} message(s) from ${esc(c.platformLabel)}.<br>${esc(c.truncatedReason ?? "")}`,
+      );
+    } else {
+      showResult(
+        "ok",
+        `<strong>✓ Context generated.</strong><br>Captured ${c.messageCount} message(s) from ${esc(c.platformLabel)}. Ready to upload elsewhere.`,
+      );
+      setTimeout(closePanel, 4500);
+    }
+  } else {
+    pikachuEl!.classList.add("shake");
+    setTimeout(() => pikachuEl?.classList.remove("shake"), 500);
+    showResult("err", `<strong>✕ Could not generate context.</strong><br>${esc(result.reason)}`);
+  }
+}
+
+async function runUpload(): Promise<void> {
+  openPanel();
+  panelTitleEl!.textContent = "⬆️ Uploading context…";
+  resultEl!.hidden = true;
+  renderSteps(UPLOAD_STAGES, "detect");
+  // Thunderbolt must NEVER play for Upload — no pikachu classes are touched here.
+
+  const settings = await getSettings();
+  const result = await uploadContext((p) => {
+    renderSteps(UPLOAD_STAGES, p.stage, p.label);
+  }, settings.insertMode);
+
+  if (result.success) {
+    markAllDone(UPLOAD_STAGES);
+    if (result.partial) {
+      showResult(
+        "warn",
+        `<strong>⚠ Partially transferred.</strong><br>${esc(result.partialReason ?? "")}`,
+      );
+    } else {
+      showResult(
+        "ok",
+        `<strong>✓ Context transferred to ${esc(result.platformLabel)}.</strong>${result.chunks > 1 ? ` (${result.chunks} parts)` : ""}`,
+      );
+      setTimeout(closePanel, 4000);
+    }
+  } else {
+    showResult("err", `<strong>✕ Upload failed.</strong><br>${esc(result.reason)}`);
+  }
+}
+
+// -------------------------------------------------------------- exports --
 export async function boot(): Promise<void> {
-  await loadData();
-  if (!state.settings?.showLauncher) {
-    // Still install the hotkey listener so power users can open the picker.
+  const settings = await getSettings();
+  if (!settings.showLauncher) {
     document.addEventListener("keydown", onGlobalKey, true);
     return;
   }
   mount();
 }
 
-export function openPickerFromOutside(): void {
+export function openMenuFromOutside(): void {
   if (!root) mount();
-  open();
+  openMenu();
 }
 
 export function tearDown(): void {

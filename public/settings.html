@@ -12,7 +12,7 @@
       <img src="./icons/icon48.png" alt="" width="28" height="28">
       <div>
         <strong>Likky Tounge</strong>
-        <div class="tagline muted small">Your local capsule vault.</div>
+        <div class="tagline muted small">Pikachu remembers your conversation.</div>
       </div>
     </div>
     <nav class="topnav">
@@ -27,22 +27,18 @@
     <p class="muted">All options change only how Likky Tounge behaves on this device.</p>
 
     <section class="section">
-      <h2>Launcher</h2>
+      <h2>Pikachu launcher</h2>
       <div class="field switch">
         <input type="checkbox" id="showLauncher">
-        <label for="showLauncher">Show the floating launcher button on supported AI sites</label>
+        <label for="showLauncher">Show the Pikachu launcher on supported AI sites</label>
       </div>
       <div class="field">
-        <label for="launcherHotkey">Keyboard shortcut to open the picker</label>
+        <label for="launcherHotkey">Keyboard shortcut to open the Generate / Upload menu</label>
         <input id="launcherHotkey" type="text" placeholder="Alt+K" maxlength="20">
-        <p class="hint muted small">Format: <code>Alt+K</code>, <code>Ctrl+Shift+P</code>, <code>Meta+J</code>.</p>
-      </div>
-      <div class="field switch">
-        <input type="checkbox" id="focusSearchOnOpen">
-        <label for="focusSearchOnOpen">Auto-focus the search box when the picker opens</label>
+        <p class="hint muted small">Format: <code>Alt+K</code>, <code>Ctrl+Shift+P</code>, <code>Meta+J</code>. Clicking Pikachu directly always runs Generate Context.</p>
       </div>
       <div class="field">
-        <label for="insertMode">How to insert a capsule into the chat input</label>
+        <label for="insertMode">How Upload Context inserts into the chat input</label>
         <select id="insertMode">
           <option value="append">Append at end (recommended)</option>
           <option value="prepend">Prepend at start</option>
@@ -78,13 +74,13 @@
     <section class="section">
       <h2>Supported sites</h2>
       <ul>
-        <li>ChatGPT (chatgpt.com, chat.openai.com)</li>
-        <li>Claude (claude.ai)</li>
-        <li>Gemini (gemini.google.com)</li>
-        <li>DeepSeek (chat.deepseek.com)</li>
+        <li>ChatGPT (chatgpt.com, chat.openai.com) — Generate &amp; Upload Context</li>
+        <li>Claude (claude.ai) — Generate &amp; Upload Context</li>
+        <li>Gemini (gemini.google.com) — Generate &amp; Upload Context</li>
+        <li>DeepSeek (chat.deepseek.com) — Generate &amp; Upload Context (best-effort selectors)</li>
         <li>Gmail (mail.google.com) — right-click text → <b>Save selection as Capsule</b></li>
       </ul>
-      <p class="hint muted small">The right-click <b>Save selection as Capsule</b> works on any page — Gmail is just called out because it's what Capsule Hub focuses on.</p>
+      <p class="hint muted small">DeepSeek's page structure isn't officially documented, so extraction there uses best-effort heuristics and will clearly report if it can't find messages, rather than guessing.</p>
     </section>
 
     <section class="section" id="about">
@@ -110,26 +106,28 @@
 
       <h3 style="margin-top:18px;">What it does</h3>
       <ul>
-        <li><b>Capsules:</b> save reusable blocks of context (goals, project background, style guides).</li>
+        <li><b>Generate Context:</b> click Pikachu (or + → Generate Context) to capture the entire current conversation — including history loaded via scrolling — as Markdown.</li>
+        <li><b>Upload Context:</b> switch to another supported LLM, click + → Upload Context, and the last generated context is automatically inserted into that chat's input. No file picking, no drag-and-drop, no copy-paste.</li>
+        <li><b>Capsules:</b> save reusable blocks of context (goals, project background, style guides) from the popup or Library.</li>
         <li><b>Folders:</b> group Capsules any way you want (Engineering, Marketing, Personal…).</li>
-        <li><b>One-click inject:</b> on ChatGPT, Claude, Gemini, DeepSeek — open the picker with <code>Alt+K</code>, click a Capsule, and its text lands in the chat input.</li>
-        <li><b>Drag &amp; drop:</b> grab a Capsule tile and drop it onto any chat input.</li>
-        <li><b>Cook This Prompt:</b> a local, rule-based prompt enhancer. Structures your prompt into Role · Task · Constraints · Output, asks for step-by-step reasoning, sets audience, and more — no API keys.</li>
+        <li><b>Cook This Prompt:</b> a local, rule-based prompt enhancer — Role · Task · Constraints · Output, step-by-step reasoning, audience, output format, and more. No API keys.</li>
         <li><b>Right-click to save:</b> highlight any text on any page → <i>Save selection as Capsule</i>.</li>
-        <li><b>JSON backup:</b> import / export the whole vault as a portable file.</li>
+        <li><b>JSON backup:</b> import / export your Capsules and folders as a portable file.</li>
       </ul>
 
       <h3>Privacy pillars</h3>
       <ul>
         <li>❌ No account, no cloud sync, no analytics, no telemetry.</li>
         <li>❌ No third-party API calls; <b>zero runtime dependencies</b> in the shipped extension.</li>
-        <li>✅ Every Capsule stays in this browser's IndexedDB. Wipe it any time with the button above.</li>
+        <li>✅ Generated context and Capsules stay in this browser's storage. Wipe them any time with the button above.</li>
       </ul>
 
       <h3>Safety guarantees</h3>
       <ul>
         <li>Never bypasses site authentication, CSP, CORS, DRM, or any security mechanism.</li>
-        <li>The launcher is UI-only — it doesn't read chat contents or send anything anywhere.</li>
+        <li><b>Generate Context</b> does read the visible conversation text on the page in order to capture it — that's the feature. It is never transmitted anywhere except this browser's own local storage, and only runs when you click Pikachu or Generate Context.</li>
+        <li><b>Upload Context</b> only reads back the context you already generated and types it into the current page's chat input — nothing is sent over the network by the extension itself.</li>
+        <li>If a full history can't be confirmed (extremely long or oddly-loading conversations), the extension marks the result "possibly incomplete" rather than silently pretending it captured everything.</li>
         <li>Least-privilege permissions: <code>storage</code>, <code>activeTab</code>, <code>scripting</code>, <code>contextMenus</code>, plus host permissions for the supported AI sites only.</li>
       </ul>
 

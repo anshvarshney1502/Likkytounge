@@ -1,35 +1,45 @@
 # Likky Tounge
 
-**Capsules of context, ready in any AI chat.** A free, open-source, privacy-first Chrome extension in the spirit of Capsule Hub — save reusable context blocks ("Capsules"), organize them into folders, and drop them into ChatGPT / Claude / Gemini / DeepSeek with one click.
+**Pikachu remembers your conversation, and carries it to any other AI chat.** A free, open-source, privacy-first Chrome extension. Click Pikachu to capture your entire current ChatGPT/Claude/Gemini/DeepSeek conversation; switch to another supported LLM, click **Upload Context**, and the whole thing lands in the new chat's input automatically — no file picker, no drag-and-drop, no copy-paste.
 
 Repository: <https://github.com/anshvarshney1502/Likkytounge>
 
 - No account. No cloud sync. No analytics. No API keys.
-- Everything lives in this browser's IndexedDB and never leaves it.
+- Everything lives in this browser's local storage and never leaves it.
 - MIT licensed.
 
 ## What it does
 
-- **Capsules** — reusable context blocks (goals, project background, style guides, personas). Create once, reuse forever.
+### ⚡ Generate Context / Upload Context (the headline feature)
+- **Generate Context** — click Pikachu (or `+` → Generate Context). It auto-scrolls the conversation to load lazy/paginated/infinite-scroll history, extracts every message in order, and saves the whole thing as Markdown — the "latest context."
+- **Upload Context** — switch to another supported LLM, click `+` → Upload Context. The latest generated context is automatically detected and typed into that page's chat input. Only the most recent generation is ever used.
+- Handles very long conversations: extraction isn't limited to what's on-screen, and if the extractor can't confirm it reached the true start of the conversation it reports that honestly ("possibly incomplete") instead of silently pretending it got everything.
+- Large contexts are chunked automatically on upload, in order, with the actual inserted length verified afterward — a partial transfer is reported as partial, never as a false success.
+- The Thunderbolt animation plays only for Generate Context, never for Upload Context.
+
+### 🧩 Capsules (reusable snippets)
+- **Capsules** — reusable context blocks (goals, project background, style guides, personas). Create once, reuse forever, from the popup or Library.
 - **Folders** — group Capsules however you like (Engineering, Marketing, Personal…).
-- **One-click inject** — on ChatGPT, Claude, Gemini, and DeepSeek, hit `Alt+K` (customizable), pick a Capsule, and its text lands in the chat input.
-- **Drag & drop** — grab a Capsule tile from the picker and drop it onto any chat input.
 - **Right-click to save** — highlight any text on any page → *Save selection as Capsule* (works on Gmail too).
-- **Cook This Prompt** — a local, rules-based prompt enhancer. Structures your prompt as *Role · Task · Constraints · Output*, adds step-by-step reasoning, pins output format, sets audience, and more — **no LLM call, no API keys, no network**.
 - **Search + filter** — full-text search across every Capsule, filter by folder, sort by recent/used/title.
 - **Portable JSON backup** — export the whole vault, import it on another machine.
 
-## Supported sites (for the on-page picker)
+### 🧑‍🍳 Cook This Prompt
+A local, rules-based prompt enhancer. Structures your prompt as *Role · Task · Constraints · Output*, adds step-by-step reasoning, pins output format, sets audience, and more — **no LLM call, no API keys, no network**.
 
-| Site | Purpose |
-| --- | --- |
-| ChatGPT (`chatgpt.com`, `chat.openai.com`) | Injects Capsules into the chat input |
-| Claude (`claude.ai`) | Injects Capsules into the chat input |
-| Gemini (`gemini.google.com`) | Injects Capsules into the chat input |
-| DeepSeek (`chat.deepseek.com`) | Injects Capsules into the chat input |
-| Gmail (`mail.google.com`) | Right-click text → *Save selection as Capsule* |
+## Supported sites
 
-The right-click *Save selection as Capsule* works on **any page** — Gmail is highlighted because it's Capsule Hub's marquee use case.
+| Site | Generate / Upload Context | Capsule right-click save |
+| --- | --- | --- |
+| ChatGPT (`chatgpt.com`, `chat.openai.com`) | ✅ | ✅ |
+| Claude (`claude.ai`) | ✅ | ✅ |
+| Gemini (`gemini.google.com`) | ✅ | ✅ |
+| DeepSeek (`chat.deepseek.com`) | ✅ (best-effort selectors) | ✅ |
+| Gmail (`mail.google.com`) | — | ✅ |
+
+The right-click *Save selection as Capsule* works on **any page**, not just the list above.
+
+> **Note on the Pikachu artwork:** the launcher currently ships with a placeholder inline-SVG Pikachu face. Dropping the real provided artwork at `public/pikachu.png` and swapping one line in `src/content/pikachu-icon.ts` is all that's needed to use it — see the comment at the top of that file.
 
 ## Privacy
 
@@ -64,13 +74,26 @@ npm run check        # typecheck + tests + build
 
 ```
 src/
-  content/          floating launcher + capsule picker overlay + input injection
-    overlay.ts      shadow-DOM UI (picker, drag/drop, hotkey)
-    insert.ts       finds the chat input and inserts text (textarea + contenteditable)
-  background/       MV3 service worker: routes messages, runs the context menu
+  content/          Pikachu launcher overlay + generic input-injection helper
+    overlay.ts      shadow-DOM UI (Pikachu, + menu, progress panel, hotkey)
+    insert.ts       finds a chat input and inserts text (textarea + contenteditable)
+    pikachu-icon.ts placeholder Pikachu SVG (swap for public/pikachu.png later)
+    thunderbolt-icon.ts  bolt glyph used by the Generate-only animation
+  context/          Generate Context / Upload Context engine
+    types.ts        LatestContext, progress/result shapes
+    markdown.ts      "# Conversation Context" formatter
+    store.ts         single-slot latest-context storage (IndexedDB, background-only)
+    generate.ts      orchestrates detect -> scroll-load -> extract -> format -> store
+    upload.ts         orchestrates detect -> locate input -> chunked insert -> verify
+    extract/
+      platforms.ts    per-LLM selectors: scroll container, messages, input, title
+      scroll-loader.ts auto-scrolls to load lazy/paginated/infinite-scroll history
+      serialize.ts     DOM element -> markdown-ish text (code fences, links, lists)
+  background/       MV3 service worker: routes messages, owns latest-context storage,
+                    runs the "Save selection as Capsule" context menu
   storage/          IndexedDB (capsules + folders) with CRUD + import merge
   cook/             "Cook This Prompt" local rewriter (8 stackable recipes)
-  popup/            quick create + recent list
+  popup/            quick capsule create + recent list
   library/          full-page manager: folders / capsules / editor
   settings/         settings + JSON import/export + about
   shared/           types, brand, theme, settings-store, download helper
@@ -78,7 +101,9 @@ src/
 public/             HTML pages, styles, icons, manifest.json
 ```
 
-Data model (see [src/shared/types.ts](src/shared/types.ts)):
+**Why latest-context storage lives in the background, not the content script:** a content script's `indexedDB` is scoped to the *page's* origin (e.g. `chatgpt.com`), so a context generated there would be invisible on `claude.ai`. The background service worker runs at the extension's own origin, so `GET_LATEST_CONTEXT` / `SET_LATEST_CONTEXT` messages give every site a shared view of the same "latest context."
+
+Data models (see [src/shared/types.ts](src/shared/types.ts) and [src/context/types.ts](src/context/types.ts)):
 
 ```ts
 interface Capsule {
@@ -94,6 +119,18 @@ interface Capsule {
   sourceUrl?: string;   // when captured via right-click
 }
 interface Folder { id: string; name: string; color?: string; order: number; createdAt: string; }
+
+interface LatestContext {
+  markdown: string;           // never truncated
+  platformId: string;
+  platformLabel: string;
+  conversationUrl: string;
+  conversationTitle: string;
+  messageCount: number;
+  capturedAt: string;
+  truncated: boolean;         // true if the scroll-loader hit a safety cap
+  truncatedReason?: string;
+}
 ```
 
 ## Cook This Prompt — recipes
@@ -108,6 +145,29 @@ All local, no API calls. Stack any subset:
 - **Cut fluff** — anti-verbose directive.
 - **Self-critique pass** — DRAFT → CRITIQUE → FINAL.
 - **Prepend background context** — grounds the AI in project background you paste in.
+
+## Using Generate / Upload Context
+
+```
+1. On ChatGPT (or Claude/Gemini/DeepSeek), click Pikachu.
+     -> Detect platform -> scroll to load full history -> extract every
+        message -> format as Markdown -> save as "latest context"
+     -> Thunderbolt animation plays, then a result summary appears
+        ("Captured 42 messages from ChatGPT.")
+
+2. Switch tabs to Claude (or any other supported LLM).
+
+3. Click the + button next to Pikachu -> Upload Context.
+     -> Detect platform -> locate the chat input -> insert the latest
+        context (chunked automatically if very large) -> verify it landed
+     -> No Thunderbolt animation for this step.
+```
+
+If no context has been generated yet, Upload Context reports
+*"No generated context is available yet. Generate a context first."*
+rather than doing nothing silently. If a conversation is so long the
+extractor can't confirm it reached the very start, Generate Context still
+saves what it found but marks it "possibly incomplete" with a reason.
 
 ## Permissions
 

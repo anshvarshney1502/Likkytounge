@@ -17,7 +17,6 @@ async function save(patch: Partial<Settings>): Promise<Settings> {
 
 function bind(settings: Settings): void {
   ($("showLauncher") as HTMLInputElement).checked = settings.showLauncher;
-  ($("focusSearchOnOpen") as HTMLInputElement).checked = settings.focusSearchOnOpen;
   ($("launcherHotkey") as HTMLInputElement).value = settings.launcherHotkey;
   ($("insertMode") as HTMLSelectElement).value = settings.insertMode;
   ($("theme") as HTMLSelectElement).value = settings.theme;
@@ -26,9 +25,6 @@ function bind(settings: Settings): void {
 function wire(): void {
   $("showLauncher").addEventListener("change", (e) =>
     save({ showLauncher: (e.target as HTMLInputElement).checked }),
-  );
-  $("focusSearchOnOpen").addEventListener("change", (e) =>
-    save({ focusSearchOnOpen: (e.target as HTMLInputElement).checked }),
   );
   $("launcherHotkey").addEventListener("change", (e) =>
     save({ launcherHotkey: (e.target as HTMLInputElement).value.trim() || "Alt+K" }),
