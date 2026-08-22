@@ -8,10 +8,26 @@ semantic versioning once it reaches 1.0.
 
 ### Planned
 - Swap the placeholder inline-SVG Pikachu for the real provided artwork (`public/pikachu.png`) — one-line change once the asset is available.
-- Per-Capsule versioning & rollback.
-- Team folders with color labels.
-- More Cook recipes (few-shot templates, tone/register presets).
-- Additional site adapters (Copilot, Grok, Qwen).
+- Additional site adapters for Generate/Upload Context (Copilot, Grok, Qwen).
+- Per-context version history (currently only the single "latest" pointer is tracked; every generation is kept, but not edited-in-place history of the same context).
+
+## [0.5.0] — 2026-08-23
+
+### Changed — premium UI & Context Library redesign
+Full redesign of every surface except the Pikachu launcher, Generate/Upload Context flow, and Thunderbolt animation, which are **unchanged** (verified via `git diff` against the previous release — zero diff on `src/content/overlay.ts`, `insert.ts`, `pikachu-icon.ts`, `thunderbolt-icon.ts`, `overlay.css`, and all of `src/context/{generate,upload}.ts` + `extract/`).
+
+- **New visual language:** Wine Red (`#7F021F`) + Light Sand (`#F6EAD0`) editorial design system (`public/styles.css`) — serif display type, generous whitespace, restrained borders/shadows, light and dark themes, adjustable density and reduced-motion.
+- **New popup:** replaces the old Quick Create / Save Capsule interface entirely. First screen is a single headline ("Your conversations, remembered.") and one primary action ("Check your previous context"), plus a live preview of the latest generated context.
+- **New Context Library** (`app.html`, a single-page app with hash routing): persistent sidebar of every successfully generated context, grouped by Today/Yesterday/Earlier, with the latest context clearly marked (dot + "Latest" badge) — Upload Context always uses this one, confirmed by dedicated tests.
+- **Context Viewer:** conversations render as a formatted document (headings, lists, tables, code blocks, blockquotes, links) via a new dependency-free Markdown renderer — never raw Markdown syntax. User/Assistant turns are visually distinct. Inline title rename. Toolbar: Copy, Share (native Web Share API with clipboard fallback), Export, and a delete action.
+- **Export system:** Markdown (.md), Plain Text (.txt), HTML (.html), and ZIP (bundles all three plus metadata.json) — rebuilt `src/export/` module (zip writer, Markdown-to-HTML renderer, Markdown-to-plaintext) since the prior export code was removed in the v0.3 pivot.
+- **Search:** instant metadata search (title/platform/date) across the whole library; falls back to a body-text scan for libraries under 300 contexts so very large libraries stay fast.
+- **Settings:** rebuilt as a dedicated in-app view — Pikachu launcher, Context (titles, insert behavior), Export defaults, Appearance (theme/density/reduced motion), Privacy (plain-language storage explanation), and Storage (usage, clear-old, clear-all with confirmation).
+- **About:** dedicated brand page — features grid, pull quote, and Connect links (GitHub project + author only — no invented social links).
+- **Responsive layout:** full sidebar above 860px, a trimmed 200px rail with icon-only actions between 640–860px, and an off-canvas drawer with backdrop below 640px. No horizontal overflow at any width.
+- **Data model:** the single-slot "latest context" store was extended into a full library — every generated context is now persisted (`meta`/`bodies`/`kv` IndexedDB stores) instead of only the most recent one being kept. Deleting the current latest context safely falls back to the next-newest survivor; deleting an older context never changes what Upload Context uses. Covered by 10 new store tests.
+- **Removed:** the Capsules quick-create popup UI, the old capsule-manager Library page, and the Cook This Prompt page/navigation (per explicit redesign scope — "no unnecessary features"). The underlying Capsule IndexedDB data from earlier versions is not deleted automatically; Settings → Storage surfaces a count and a "Delete all local data" action that clears it alongside the context library.
+- +19 new tests (Markdown rendering, plaintext conversion, context-store latest/delete/rename semantics); 39/39 total tests pass.
 
 ## [0.4.0] — 2026-08-23
 

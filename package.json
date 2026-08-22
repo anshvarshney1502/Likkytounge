@@ -1,6 +1,6 @@
 {
   "name": "likky-tounge",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Likky Tounge — Pikachu captures your whole AI conversation and carries it to any other supported LLM with one click. Privacy-first, open source, 100% local.",
   "license": "MIT",
   "private": true,

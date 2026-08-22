@@ -17,9 +17,7 @@ const entries = {
   content: "src/content/index.ts",
   background: "src/background/index.ts",
   popup: "src/popup/index.ts",
-  library: "src/library/index.ts",
-  cook: "src/cook/index.ts",
-  settings: "src/settings/index.ts",
+  app: "src/app/index.ts",
 };
 
 async function copyStatic() {

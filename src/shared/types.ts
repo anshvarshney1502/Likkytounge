@@ -37,6 +37,16 @@ export interface Settings {
   launcherHotkey: string; // e.g. "Alt+K"
   /** How Upload Context inserts into the destination chat input. */
   insertMode: "replace" | "append" | "prepend";
+  /** Default format for the context-viewer Export action. */
+  defaultExportFormat: "markdown" | "plaintext" | "html" | "zip";
+  /** Use the source platform's own conversation title, vs. a generic dated label. */
+  autoGenerateTitles: boolean;
+  /** Show the "Last context" preview card on the popup's first screen. */
+  showLastContextPreview: boolean;
+  /** Interface density in the Context Library. */
+  density: "comfortable" | "compact";
+  /** Disable non-essential UI animations (Thunderbolt itself is exempt — that's core UX, not decorative). */
+  reduceMotion: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -44,6 +54,11 @@ export const DEFAULT_SETTINGS: Settings = {
   showLauncher: true,
   launcherHotkey: "Alt+K",
   insertMode: "append",
+  defaultExportFormat: "zip",
+  autoGenerateTitles: true,
+  showLastContextPreview: true,
+  density: "comfortable",
+  reduceMotion: false,
 };
 
 /** Portable backup shape (JSON). */

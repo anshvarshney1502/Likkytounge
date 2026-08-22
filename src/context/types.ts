@@ -9,6 +9,8 @@ export interface ContextMessage {
 }
 
 export interface LatestContext {
+  /** Present once persisted by the store; absent on the freshly-built object generate.ts returns. */
+  id?: string;
   /** Markdown per the spec: "# Conversation Context" + ## User / ## Assistant blocks. */
   markdown: string;
   platformId: string;

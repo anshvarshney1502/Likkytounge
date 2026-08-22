@@ -17,7 +17,17 @@ export type RuntimeRequest =
   // — NOT in the content script's page origin — so it's shared across every
   // AI site instead of being isolated per-domain.
   | { type: "GET_LATEST_CONTEXT" }
-  | { type: "SET_LATEST_CONTEXT"; context: LatestContext };
+  | { type: "SET_LATEST_CONTEXT"; context: LatestContext }
+  | { type: "GET_LATEST_CONTEXT_ID" }
+  // Context Library (every successfully generated context, not just the latest).
+  | { type: "LIST_CONTEXTS" }
+  | { type: "GET_CONTEXT"; id: string }
+  | { type: "RENAME_CONTEXT"; id: string; title: string }
+  | { type: "DELETE_CONTEXT"; id: string }
+  | { type: "CLEAR_ALL_CONTEXTS" }
+  | { type: "CLEAR_OLD_CONTEXTS"; olderThanDays: number }
+  | { type: "SEARCH_CONTEXT_BODIES"; query: string; candidateIds: string[] }
+  | { type: "GET_CONTEXT_STORAGE_ESTIMATE" };
 
 export interface CapsulesData {
   capsules: Capsule[];

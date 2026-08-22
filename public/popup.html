@@ -8,43 +8,36 @@
 </head>
 <body>
   <main class="popup" role="main">
-    <div class="brand">
-      <img src="./icons/icon48.png" alt="" width="28" height="28">
-      <div>
-        <strong>Likky Tounge</strong>
-        <div class="tagline muted">Capsules of context — ready in any AI chat.</div>
-      </div>
+    <div class="popup-brand">
+      <img src="./icons/icon48.png" alt="">
+      Likky Tounge
     </div>
 
-    <section aria-label="Quick create">
-      <div class="field">
-        <label for="new-title" class="muted small">Quick create</label>
-        <input id="new-title" type="text" placeholder="Capsule title (e.g. 'React project background')">
-      </div>
-      <div class="field">
-        <textarea id="new-body" rows="3" placeholder="Paste or type the context you want to reuse…"></textarea>
-      </div>
-      <button id="new-save" class="btn btn-primary">＋ Save capsule</button>
-    </section>
+    <h1 class="popup-headline" id="headline">Your conversations,<br>remembered.</h1>
 
-    <section aria-label="Recent capsules" class="section">
-      <div class="row spread">
-        <strong>Recent capsules</strong>
-        <span id="count" class="muted small">0</span>
-      </div>
-      <ul id="recent" class="recent"></ul>
-      <div id="recent-empty" class="muted small" hidden>No capsules yet. Save one above, or right-click any text on a page.</div>
-    </section>
+    <div class="popup-cta">
+      <button id="open-library" class="btn-primary block">
+        <span>Check your previous context</span>
+        <span class="arrow" aria-hidden="true">→</span>
+      </button>
+    </div>
 
-    <nav class="foot">
-      <a id="open-library" class="btn" href="./library.html" target="_blank" rel="noopener">📚 Library</a>
-      <a id="open-cook" class="btn" href="./cook.html" target="_blank" rel="noopener">🧑‍🍳 Cook prompt</a>
-      <a id="open-settings" class="btn" href="./settings.html" target="_blank" rel="noopener">⚙️ Settings</a>
-    </nav>
+    <div id="last-context" class="last-context-card" hidden>
+      <span class="lc-label">Latest</span>
+      <span class="lc-title" id="lc-title"></span>
+      <span class="lc-meta" id="lc-meta"></span>
+    </div>
 
-    <p class="footlink muted small">
-      <a href="https://github.com/anshvarshney1502/Likkytounge" target="_blank" rel="noopener">Open source · GitHub ↗</a>
+    <p id="popup-empty" class="popup-empty" hidden>
+      Click Pikachu on ChatGPT, Claude, Gemini, or DeepSeek to generate your first context — it will appear here.
     </p>
+
+    <div class="popup-divider"></div>
+
+    <div class="popup-foot">
+      <a id="open-settings" href="#">⚙ Settings</a>
+      <a id="open-about" href="#">About</a>
+    </div>
   </main>
   <script src="./popup.js"></script>
 </body>

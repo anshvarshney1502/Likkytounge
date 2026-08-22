@@ -1,82 +1,55 @@
-import type { Capsule, Settings } from "../shared/types";
-import { applyTheme } from "../shared/theme";
-import { randomId } from "../utils/id";
+import type { Settings } from "../shared/types";
+import { applyTheme, applyDensity } from "../shared/theme";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.round(diff / 60000);
+  if (m < 1) return "moments ago";
+  if (m < 60) return `${m} min ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h} h ago`;
+  const d = Math.round(h / 24);
+  return d === 1 ? "yesterday" : `${d} days ago`;
+}
+
+function openApp(hash = ""): void {
+  chrome.tabs.create({ url: chrome.runtime.getURL(`app.html${hash}`) });
+}
 
 async function init(): Promise<void> {
   const settings = (await chrome.runtime.sendMessage({ type: "GET_SETTINGS" })) as Settings;
   applyTheme(settings.theme);
-  await refresh();
+  applyDensity(settings.density);
 
-  $("new-save").addEventListener("click", saveNew);
-  $("new-body").addEventListener("keydown", (e) => {
-    if ((e as KeyboardEvent).ctrlKey && (e as KeyboardEvent).key === "Enter") saveNew();
+  $("open-library").addEventListener("click", () => openApp());
+  $("open-settings").addEventListener("click", (e) => {
+    e.preventDefault();
+    openApp("#/settings");
   });
-}
+  $("open-about").addEventListener("click", (e) => {
+    e.preventDefault();
+    openApp("#/about");
+  });
 
-async function refresh(): Promise<void> {
-  const capsules = (await chrome.runtime.sendMessage({ type: "LIST_CAPSULES" })) as Capsule[];
-  const recent = capsules.slice(0, 6);
-  $("count").textContent = String(capsules.length);
-  const ul = $<HTMLUListElement>("recent");
-  const empty = $("recent-empty");
-  if (!recent.length) {
-    ul.innerHTML = "";
-    empty.hidden = false;
+  if (!settings.showLastContextPreview) return;
+
+  const [latestId, list] = await Promise.all([
+    chrome.runtime.sendMessage({ type: "GET_LATEST_CONTEXT_ID" }),
+    chrome.runtime.sendMessage({ type: "LIST_CONTEXTS" }),
+  ]);
+
+  const latest = Array.isArray(list) ? list.find((c: { id: string }) => c.id === latestId) : null;
+  if (!latest) {
+    $("popup-empty").hidden = false;
     return;
   }
-  empty.hidden = true;
-  ul.innerHTML = recent
-    .map(
-      (c) => `
-      <li>
-        <a class="capsule-link" data-id="${escape(c.id)}" title="Open in library">
-          <strong>${escape(c.title)}</strong>
-          <span class="muted small block">${escape(preview(c.body))}</span>
-        </a>
-      </li>`,
-    )
-    .join("");
-  ul.addEventListener("click", (e) => {
-    const target = (e.target as HTMLElement).closest<HTMLElement>(".capsule-link");
-    if (target?.dataset.id) {
-      window.open(chrome.runtime.getURL(`library.html#capsule=${target.dataset.id}`), "_blank");
-    }
-  }, { once: true });
-}
-
-function preview(text: string): string {
-  return text.replace(/\s+/g, " ").slice(0, 80) + (text.length > 80 ? "…" : "");
-}
-
-function escape(s: string): string {
-  return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
-}
-
-async function saveNew(): Promise<void> {
-  const title = ($("new-title") as HTMLInputElement).value.trim();
-  const body = ($("new-body") as HTMLTextAreaElement).value.trim();
-  if (!body) {
-    ($("new-body") as HTMLTextAreaElement).focus();
-    return;
-  }
-  const now = new Date().toISOString();
-  const capsule: Capsule = {
-    id: randomId("cap"),
-    title: title || body.split("\n")[0].slice(0, 60) || "Untitled capsule",
-    body,
-    summary: body.slice(0, 140).replace(/\s+/g, " ").trim(),
-    folderId: null,
-    tags: [],
-    useCount: 0,
-    createdAt: now,
-    updatedAt: now,
-  };
-  await chrome.runtime.sendMessage({ type: "UPSERT_CAPSULE", capsule });
-  ($("new-title") as HTMLInputElement).value = "";
-  ($("new-body") as HTMLTextAreaElement).value = "";
-  await refresh();
+  $("last-context").hidden = false;
+  $("lc-title").textContent = latest.title;
+  $("lc-meta").textContent = `${latest.platformLabel} · Generated ${timeAgo(latest.capturedAt)}`;
+  $("last-context").addEventListener("click", () => openApp(`#/context/${latest.id}`));
+  $("last-context").style.cursor = "pointer";
 }
 
 void init();

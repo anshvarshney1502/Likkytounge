@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Likky Tounge</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="app">
+    <button class="menu-toggle" id="menu-toggle" aria-label="Open context list">☰</button>
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+    <aside class="sidebar" id="sidebar" aria-label="Context library">
+      <div class="sidebar-head">
+        <div class="brand-row">
+          <img src="./icons/icon48.png" alt="">
+          <span class="brand-text">Likky Tounge</span>
+        </div>
+        <div class="sidebar-search">
+          <span class="icon" aria-hidden="true">🔍</span>
+          <input id="search" type="search" placeholder="Search your contexts…" aria-label="Search contexts">
+        </div>
+      </div>
+      <nav class="sidebar-scroll" id="ctx-list" aria-label="All contexts"></nav>
+      <div class="sidebar-foot">
+        <a class="nav-link" id="nav-settings">⚙ Settings</a>
+        <a class="nav-link" id="nav-about">ⓘ About</a>
+      </div>
+    </aside>
+
+    <main class="main" id="main"></main>
+  </div>
+
+  <div class="toast-host"><div class="toast" id="toast"></div></div>
+  <script src="./app.js"></script>
+</body>
+</html>

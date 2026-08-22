@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Likky Tounge",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Pikachu captures your whole AI conversation and carries it to any other supported LLM with one click. Privacy-first, open source, 100% local.",
   "action": {
     "default_popup": "popup.html",
@@ -22,8 +22,7 @@
     "https://chat.openai.com/*",
     "https://claude.ai/*",
     "https://gemini.google.com/*",
-    "https://chat.deepseek.com/*",
-    "https://mail.google.com/*"
+    "https://chat.deepseek.com/*"
   ],
   "content_scripts": [
     {
@@ -32,8 +31,7 @@
         "https://chat.openai.com/*",
         "https://claude.ai/*",
         "https://gemini.google.com/*",
-        "https://chat.deepseek.com/*",
-        "https://mail.google.com/*"
+        "https://chat.deepseek.com/*"
       ],
       "js": ["content.js"],
       "run_at": "document_idle"

@@ -2,7 +2,19 @@ import { db } from "../storage/db";
 import { getSettings, setSettings } from "../shared/settings-store";
 import type { Capsule, Folder } from "../shared/types";
 import { randomId } from "../utils/id";
-import { getLatestContext, setLatestContext } from "../context/store";
+import {
+  getLatestContext,
+  setLatestContext,
+  getLatestContextId,
+  listContexts,
+  getContext,
+  renameContext,
+  deleteContext,
+  clearAllContexts,
+  clearOldContexts,
+  searchContextBodies,
+  estimateContextStorage,
+} from "../context/store";
 
 // --- context menu: right-click selected text -> save as capsule ---
 const MENU_ID = "likky-save-selection";
@@ -79,9 +91,31 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
           return sendResponse({ ok: true });
         case "GET_LATEST_CONTEXT":
           return sendResponse(await getLatestContext());
-        case "SET_LATEST_CONTEXT":
-          await setLatestContext(msg.context);
+        case "SET_LATEST_CONTEXT": {
+          const saved = await setLatestContext(msg.context);
+          return sendResponse({ ok: true, id: saved.id });
+        }
+        case "GET_LATEST_CONTEXT_ID":
+          return sendResponse(await getLatestContextId());
+        case "LIST_CONTEXTS":
+          return sendResponse(await listContexts());
+        case "GET_CONTEXT":
+          return sendResponse(await getContext(msg.id));
+        case "RENAME_CONTEXT":
+          await renameContext(msg.id, msg.title);
           return sendResponse({ ok: true });
+        case "DELETE_CONTEXT":
+          await deleteContext(msg.id);
+          return sendResponse({ ok: true });
+        case "CLEAR_ALL_CONTEXTS":
+          await clearAllContexts();
+          return sendResponse({ ok: true });
+        case "CLEAR_OLD_CONTEXTS":
+          return sendResponse({ deleted: await clearOldContexts(msg.olderThanDays) });
+        case "SEARCH_CONTEXT_BODIES":
+          return sendResponse([...(await searchContextBodies(msg.query, msg.candidateIds))]);
+        case "GET_CONTEXT_STORAGE_ESTIMATE":
+          return sendResponse(await estimateContextStorage());
         default:
           return sendResponse({ error: "unknown" });
       }
