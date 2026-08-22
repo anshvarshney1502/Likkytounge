@@ -4,6 +4,7 @@ import type { ExportFormat, Settings } from "../shared/messages";
 import { exportConversation, buildBackupZip } from "../export/archive";
 import { resolveAttachmentFiles } from "../export/attachments";
 import { conversationToHtml } from "../export/html";
+import { conversationToPlaintext } from "../export/plaintext";
 import { downloadBlob } from "../shared/download";
 import { applyTheme } from "../shared/theme";
 
@@ -13,8 +14,17 @@ const emptyEl = $<HTMLDivElement>("empty");
 const searchEl = $<HTMLInputElement>("search");
 const platformEl = $<HTMLSelectElement>("platform");
 const sortEl = $<HTMLSelectElement>("sort");
+const statsEl = $<HTMLDivElement>("stats");
 
 let all: ConversationSummary[] = [];
+let currentSettings: Settings | null = null;
+
+function ptOpts() {
+  return {
+    includeTimestamps: currentSettings?.includeTimestamps ?? true,
+    includeWarnings: currentSettings?.includeWarnings ?? true,
+  };
+}
 
 function esc(s: string): string {
   return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
@@ -36,6 +46,13 @@ function render(): void {
   });
 
   emptyEl.hidden = items.length > 0;
+  const totalMsgs = items.reduce((n, c) => n + c.messageCount, 0);
+  const totalAtts = items.reduce((n, c) => n + c.attachmentCount, 0);
+  statsEl.textContent = items.length
+    ? `${items.length} conversation${items.length === 1 ? "" : "s"} · ${totalMsgs} messages${
+        totalAtts ? ` · ${totalAtts} attachment(s)` : ""
+      }`
+    : "";
   listEl.innerHTML = items
     .map(
       (c) => `
@@ -50,9 +67,11 @@ function render(): void {
         </div>
       </div>
       <div class="actions">
-        <button class="btn" data-act="open">Open</button>
+        <button class="btn" data-act="open" title="Open in a new tab">Open</button>
+        <button class="btn" data-act="copy" title="Copy plain text to clipboard">Copy</button>
         <select class="fmt" aria-label="Export format">
           <option value="zip">ZIP</option>
+          <option value="plaintext">Plain text</option>
           <option value="markdown">Markdown</option>
           <option value="html">HTML</option>
           <option value="json">JSON</option>
@@ -93,8 +112,19 @@ async function exportOne(id: string, format: ExportFormat): Promise<void> {
   if (!rec) return;
   const blobs = await storage.getAttachmentBlobs(rec.conversationId);
   const files = await resolveAttachmentFiles(rec.conversation, blobs);
-  const { blob, filename } = await exportConversation(rec.conversation, format, files);
+  const { blob, filename } = await exportConversation(rec.conversation, format, files, ptOpts());
   downloadBlob(blob, filename);
+}
+
+async function copyOne(id: string): Promise<void> {
+  const rec = await storage.getConversation(id);
+  if (!rec) return;
+  const text = conversationToPlaintext(rec.conversation, ptOpts());
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    alert("Clipboard access was denied by the browser.");
+  }
 }
 
 listEl.addEventListener("click", async (e) => {
@@ -105,6 +135,7 @@ listEl.addEventListener("click", async (e) => {
   if (!id) return;
   const act = btn.dataset.act;
   if (act === "open") await openConversation(id);
+  else if (act === "copy") await copyOne(id);
   else if (act === "delete") {
     if (confirm("Delete this conversation permanently from local storage?")) {
       await storage.deleteConversation(id);
@@ -126,8 +157,8 @@ $<HTMLButtonElement>("export-all").addEventListener("click", async () => {
     const files = await resolveAttachmentFiles(rec.conversation, blobs);
     items.push({ conv: rec.conversation, attachments: files });
   }
-  const blob = await buildBackupZip(items);
-  downloadBlob(blob, `localchatvault-backup-${new Date().toISOString().slice(0, 10)}.zip`);
+  const blob = await buildBackupZip(items, ptOpts());
+  downloadBlob(blob, `likky-tounge-backup-${new Date().toISOString().slice(0, 10)}.zip`);
 });
 
 $<HTMLButtonElement>("delete-all").addEventListener("click", async () => {
@@ -140,8 +171,8 @@ $<HTMLButtonElement>("delete-all").addEventListener("click", async () => {
 [searchEl, platformEl, sortEl].forEach((el) => el.addEventListener("input", render));
 
 async function init(): Promise<void> {
-  const settings = (await chrome.runtime.sendMessage({ type: "GET_SETTINGS" })) as Settings;
-  applyTheme(settings.theme);
+  currentSettings = (await chrome.runtime.sendMessage({ type: "GET_SETTINGS" })) as Settings;
+  applyTheme(currentSettings.theme);
   sortEl.value = "newest";
   await refresh();
 }

@@ -3,17 +3,20 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>LocalChatVault</title>
+  <title>Likky Tounge</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
   <main class="popup" role="main">
     <div class="brand">
       <img src="./icons/icon48.png" alt="">
-      <strong>LocalChatVault</strong>
+      <div>
+        <strong>Likky Tounge</strong>
+        <div class="tagline muted">Save any AI chat locally, in one click.</div>
+      </div>
     </div>
 
-    <button id="save" class="btn btn-primary" aria-describedby="site-label">Save Current Chat</button>
+    <button id="save" class="btn btn-primary" aria-describedby="site-label">💾 Save Current Chat</button>
 
     <div class="sitebox">
       <div class="row spread">
@@ -32,9 +35,13 @@
     </section>
 
     <nav class="foot">
-      <a id="open-library" class="btn" href="./library.html" target="_blank" rel="noopener">Library</a>
-      <a id="open-settings" class="btn" href="./settings.html" target="_blank" rel="noopener">Settings</a>
+      <a id="open-library" class="btn" href="./library.html" target="_blank" rel="noopener">📚 Library</a>
+      <a id="open-settings" class="btn" href="./settings.html" target="_blank" rel="noopener">⚙️ Settings</a>
     </nav>
+
+    <p class="footlink muted">
+      <a id="repo-link" href="https://github.com/anshvarshney1502/Likkytounge" target="_blank" rel="noopener">Open source · GitHub ↗</a>
+    </p>
   </main>
   <script src="./popup.js"></script>
 </body>

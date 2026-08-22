@@ -3,50 +3,119 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Settings · LocalChatVault</title>
+  <title>Settings · Likky Tounge</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <main class="page" role="main">
+  <header class="topbar">
     <div class="brand">
       <img src="./icons/icon48.png" alt="" width="28" height="28">
-      <h1 style="margin:0;">LocalChatVault Settings</h1>
+      <div>
+        <strong>Likky Tounge</strong>
+        <div class="tagline muted">Your local AI-chat vault.</div>
+      </div>
     </div>
+    <nav class="topnav">
+      <a class="btn" href="./library.html">📚 Library</a>
+      <a class="btn" href="./settings.html">⚙️ Settings</a>
+    </nav>
+  </header>
 
-    <div class="field switch">
-      <input type="checkbox" id="autoSave">
-      <label for="autoSave">Auto-save (experimental)</label>
-    </div>
-    <p class="hint muted" style="margin-top:-8px;">Off by default. When available, saves supported chats without a manual click.</p>
+  <main class="page" role="main">
+    <h1 style="margin:0;">Settings</h1>
+    <p class="muted">Every option here changes only how <b>Likky Tounge</b> behaves on your device.</p>
 
-    <div class="field switch">
-      <input type="checkbox" id="saveAttachments">
-      <label for="saveAttachments">Save attachments when accessible</label>
-    </div>
+    <section class="section">
+      <h2>Saving</h2>
 
-    <div class="field">
-      <label for="defaultExportFormat">Default export format</label>
-      <select id="defaultExportFormat">
-        <option value="zip">ZIP (complete archive)</option>
-        <option value="markdown">Markdown</option>
-        <option value="html">HTML</option>
-        <option value="json">JSON</option>
-      </select>
-    </div>
+      <div class="field switch">
+        <input type="checkbox" id="autoSave">
+        <label for="autoSave">Auto-save supported chats (experimental)</label>
+      </div>
+      <p class="hint muted">Off by default. When available, saves supported chats without a manual click.</p>
 
-    <div class="field">
-      <label for="theme">Theme</label>
-      <select id="theme">
-        <option value="system">System</option>
-        <option value="light">Light</option>
-        <option value="dark">Dark</option>
-      </select>
-    </div>
+      <div class="field switch">
+        <input type="checkbox" id="saveAttachments">
+        <label for="saveAttachments">Save attachments (images &amp; files) alongside messages</label>
+      </div>
+      <p class="hint muted">Attempts to copy the exact bytes of each attachment locally. Same quality, same size, same format — no re-encoding.</p>
 
-    <div class="field switch">
-      <input type="checkbox" id="debugMode">
-      <label for="debugMode">Debug mode (counts &amp; warnings only — never message contents)</label>
-    </div>
+      <div class="field">
+        <label for="maxAttachmentBytes">Maximum size per attachment</label>
+        <div class="row">
+          <input type="range" id="maxAttachmentBytes" min="1" max="500" step="1">
+          <span id="maxAttachmentBytesLabel" class="pill">—</span>
+        </div>
+        <p class="hint muted">Anything larger than this is recorded as metadata-only, so a huge file never blocks a save.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>After save</h2>
+
+      <div class="field">
+        <label for="autoDownloadOnSave">Auto-download after save</label>
+        <select id="autoDownloadOnSave">
+          <option value="off">Off — just store in the vault</option>
+          <option value="zip">Also download a ZIP archive</option>
+          <option value="markdown">Also download Markdown (.md)</option>
+          <option value="plaintext">Also download plain text (.txt)</option>
+          <option value="html">Also download HTML (.html)</option>
+          <option value="json">Also download JSON (.json)</option>
+        </select>
+      </div>
+
+      <div class="field switch">
+        <input type="checkbox" id="copyOnSave">
+        <label for="copyOnSave">Copy the conversation (plain text) to the clipboard</label>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Exports</h2>
+
+      <div class="field">
+        <label for="defaultExportFormat">Default export format (in Library)</label>
+        <select id="defaultExportFormat">
+          <option value="zip">ZIP archive (recommended — contains all formats + attachments)</option>
+          <option value="plaintext">Plain text (.txt) — no formatting, easy to read</option>
+          <option value="markdown">Markdown (.md) — formatted, portable</option>
+          <option value="html">HTML (.html) — readable in browser</option>
+          <option value="json">JSON (.json) — structured data</option>
+        </select>
+      </div>
+
+      <div class="field switch">
+        <input type="checkbox" id="includeTimestamps">
+        <label for="includeTimestamps">Include message timestamps in exports</label>
+      </div>
+      <div class="field switch">
+        <input type="checkbox" id="includeWarnings">
+        <label for="includeWarnings">Include extraction warnings in exports</label>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Appearance</h2>
+      <div class="field">
+        <label for="theme">Theme</label>
+        <select id="theme">
+          <option value="system">Follow system</option>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Diagnostics</h2>
+      <div class="field switch">
+        <input type="checkbox" id="debugMode">
+        <label for="debugMode">Debug mode</label>
+      </div>
+      <p class="hint muted">Logs adapter detection, counts, and warnings to the browser console.
+      <b>Never</b> logs your actual message contents.</p>
+    </section>
 
     <section class="section">
       <h2>Storage</h2>
@@ -63,12 +132,56 @@
     <section class="section">
       <h2>Supported sites</h2>
       <ul id="supported"></ul>
+      <p class="hint muted">Unknown sites fall back to a generic extractor (best-effort). Add new adapters — see <b>docs/ADAPTERS.md</b> in the repo.</p>
     </section>
 
-    <section class="section">
-      <h2>About</h2>
-      <p class="muted">LocalChatVault is a privacy-first, open-source extension. All conversations,
-      attachments, settings, and indexes stay on this device. Nothing is sent to any server.</p>
+    <section class="section" id="about">
+      <h2>About Likky Tounge</h2>
+      <div class="about-grid">
+        <div>
+          <div class="about-label muted">Name</div>
+          <div class="about-value">Likky Tounge</div>
+        </div>
+        <div>
+          <div class="about-label muted">Version</div>
+          <div class="about-value" id="about-version">0.2.0</div>
+        </div>
+        <div>
+          <div class="about-label muted">License</div>
+          <div class="about-value">MIT (open source)</div>
+        </div>
+        <div>
+          <div class="about-label muted">GitHub</div>
+          <div class="about-value"><a href="https://github.com/anshvarshney1502/Likkytounge" target="_blank" rel="noopener">anshvarshney1502/Likkytounge ↗</a></div>
+        </div>
+      </div>
+
+      <h3 style="margin-top:18px;">What it does</h3>
+      <ul>
+        <li>One-click <b>save</b> of the current AI conversation from ChatGPT, Claude, Gemini, and other chat sites.</li>
+        <li>Captures messages, roles, order, code blocks (with language), links, and lists — plus attached images and files.</li>
+        <li>Stores everything <b>only in this browser</b> (IndexedDB); exports as JSON, Markdown, plain text, HTML, or a ZIP archive.</li>
+        <li>Backup / restore your whole vault as a portable ZIP — no cloud in the middle.</li>
+      </ul>
+
+      <h3>Privacy pillars</h3>
+      <ul>
+        <li>❌ No account, no login, no cloud sync.</li>
+        <li>❌ No analytics, no telemetry, no tracking pixels.</li>
+        <li>❌ No third-party AI/API calls; <b>zero runtime dependencies</b> in the shipped extension.</li>
+        <li>✅ All data stays on this device. You can wipe it any time with one click.</li>
+      </ul>
+
+      <h3>Safety guarantees</h3>
+      <ul>
+        <li>The extension never tries to defeat authentication, CORS, CSP, DRM, or any site security.</li>
+        <li>The content script is <b>passive</b> — it only acts when the popup asks, never observes on its own.</li>
+        <li>Least-privilege permissions: <code>activeTab</code>, <code>storage</code>, <code>scripting</code>, <code>clipboardWrite</code>, plus host permissions for the supported AI domains only. No <code>&lt;all_urls&gt;</code>.</li>
+        <li>Debug mode logs counts and warnings only — <b>never</b> message contents.</li>
+      </ul>
+
+      <h3>Credits</h3>
+      <p class="muted">Built by <a href="https://github.com/anshvarshney1502" target="_blank" rel="noopener">Ansh Varshney</a>. MIT-licensed. Contributions welcome via GitHub.</p>
     </section>
   </main>
   <script src="./settings.js"></script>

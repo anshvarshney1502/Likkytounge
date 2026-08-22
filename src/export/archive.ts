@@ -3,6 +3,7 @@ import type { ExportFormat } from "../shared/messages";
 import { conversationToJsonString } from "./json";
 import { conversationToMarkdown } from "./markdown";
 import { conversationToHtml } from "./html";
+import { conversationToPlaintext, type PlaintextOptions } from "./plaintext";
 import { createZip, type ZipEntry } from "./zip";
 import { utf8 } from "../utils/bytes";
 
@@ -30,6 +31,7 @@ export function conversationEntries(
   conv: Conversation,
   attachments: AttachmentFile[],
   folder = safeName(conv.metadata.conversationTitle, "conversation"),
+  plaintextOpts: PlaintextOptions = {},
 ): ZipEntry[] {
   const entries: ZipEntry[] = [];
   const add = (rel: string, data: Uint8Array) => entries.push({ path: `${folder}/${rel}`, data });
@@ -37,6 +39,7 @@ export function conversationEntries(
   add("metadata.json", utf8(JSON.stringify(conv.metadata, null, 2)));
   add("messages.json", utf8(conversationToJsonString(conv)));
   add("conversation.md", utf8(conversationToMarkdown(conv)));
+  add("conversation.txt", utf8(conversationToPlaintext(conv, plaintextOpts)));
   add("conversation.html", utf8(conversationToHtml(conv)));
   add(
     "README.txt",
@@ -57,13 +60,15 @@ export function conversationEntries(
 export async function buildConversationZip(
   conv: Conversation,
   attachments: AttachmentFile[],
+  plaintextOpts: PlaintextOptions = {},
 ): Promise<Blob> {
-  return createZip(conversationEntries(conv, attachments));
+  return createZip(conversationEntries(conv, attachments, undefined, plaintextOpts));
 }
 
 /** Backup ZIP containing many conversations (each in its own folder). */
 export async function buildBackupZip(
   items: Array<{ conv: Conversation; attachments: AttachmentFile[] }>,
+  plaintextOpts: PlaintextOptions = {},
 ): Promise<Blob> {
   const entries: ZipEntry[] = [];
   const used = new Set<string>();
@@ -72,7 +77,7 @@ export async function buildBackupZip(
     let folder = safeName(conv.metadata.conversationTitle, `conversation_${i}`);
     while (used.has(folder)) folder = `${folder}_${i}`;
     used.add(folder);
-    entries.push(...conversationEntries(conv, attachments, folder));
+    entries.push(...conversationEntries(conv, attachments, folder, plaintextOpts));
     manifest.push({
       folder,
       conversationId: conv.metadata.conversationId,
@@ -99,6 +104,7 @@ export async function exportConversation(
   conv: Conversation,
   format: ExportFormat,
   attachments: AttachmentFile[] = [],
+  plaintextOpts: PlaintextOptions = {},
 ): Promise<{ blob: Blob; filename: string }> {
   const base = safeName(conv.metadata.conversationTitle, "conversation");
   switch (format) {
@@ -112,12 +118,17 @@ export async function exportConversation(
         blob: new Blob([conversationToMarkdown(conv)], { type: "text/markdown" }),
         filename: `${base}.md`,
       };
+    case "plaintext":
+      return {
+        blob: new Blob([conversationToPlaintext(conv, plaintextOpts)], { type: "text/plain" }),
+        filename: `${base}.txt`,
+      };
     case "html":
       return {
         blob: new Blob([conversationToHtml(conv)], { type: "text/html" }),
         filename: `${base}.html`,
       };
     case "zip":
-      return { blob: await buildConversationZip(conv, attachments), filename: `${base}.zip` };
+      return { blob: await buildConversationZip(conv, attachments, plaintextOpts), filename: `${base}.zip` };
   }
 }

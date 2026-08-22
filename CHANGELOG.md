@@ -12,6 +12,18 @@ semantic versioning once it reaches 1.0.
 - Multi-select export in the library.
 - Snapshot history (keep multiple versions of the same conversation).
 
+## [0.2.0] — 2026-08-22
+
+### Added
+- **Plain-text export** (`.txt`) — no markdown, no hashes; the ZIP archive now includes it alongside `.md`, `.html`, and `.json`.
+- **Hero rebrand:** the extension is now called **Likky Tounge**. Internal storage/adapter ids unchanged for backward compatibility.
+- Improved **attachment capture** for ChatGPT (uploaded images inside user turns + file tiles) and Claude (uploaded images). Host permissions extended to `oaiusercontent.com`, `anthropic.com`, and `googleusercontent.com` CDNs so cross-origin attachment fetches succeed.
+- Original attachment **quality/size/format preserved** — bytes are stored verbatim; filenames keep their real extension.
+- Expanded **Settings**: max-attachment-size slider, auto-download-after-save, copy-to-clipboard-on-save, include-timestamps and include-warnings in exports, richer export-format menu.
+- **About** section in Settings: name, version, license, GitHub repo, feature list, privacy pillars, safety guarantees, credits.
+- Popup and library UI polish: tagline, top navigation bar, stats row, per-item "Copy" action.
+- New `clipboardWrite` permission (required for the copy features; user-triggered only).
+
 ## [0.1.0] — 2026-08-22
 
 Initial MVP.

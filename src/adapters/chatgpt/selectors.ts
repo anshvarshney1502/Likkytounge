@@ -15,4 +15,12 @@ export const CHATGPT_SELECTORS = {
   title: ["h1", "title"],
   // Explicit file attachments (not inline images).
   attachmentLinks: ["a[download]", "a[href*='/backend-api/'][href*='download']"],
+  // File tiles rendered above a user message (uploaded PDFs, docs, spreadsheets).
+  // We detect them by data-testid or by structural containers common in ChatGPT.
+  fileTiles: [
+    "[data-testid='attachment-tile']",
+    "[data-testid*='file']",
+    "div[class*='file-attachment']",
+    "div[class*='FileAttachment']",
+  ],
 };

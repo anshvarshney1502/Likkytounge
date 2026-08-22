@@ -102,3 +102,31 @@ h1, h2, h3 { margin: 0 0 8px; }
 .field .hint { color: var(--muted); font-size: 12px; }
 .switch { display: flex; align-items: center; gap: 10px; }
 .section { border-top: 1px solid var(--border); padding-top: 16px; margin-top: 20px; }
+
+/* Topbar (library/settings pages) */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 20px; border-bottom: 1px solid var(--border); background: var(--bg);
+  position: sticky; top: 0; z-index: 10;
+}
+.topbar .brand strong { font-size: 15px; }
+.topnav { display: flex; gap: 8px; }
+.tagline { font-size: 12px; }
+.footlink { text-align: center; margin: 10px 0 0; font-size: 12px; }
+.stats { margin: 4px 0 12px; font-size: 13px; }
+
+/* About grid */
+.about-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px; margin-top: 8px;
+}
+.about-grid > div { padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); }
+.about-label { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+.about-value { font-weight: 600; margin-top: 2px; word-break: break-word; }
+
+/* Popup brand tweak */
+.brand > div { line-height: 1.15; }
+.hint { font-size: 12px; margin-top: -6px; }
+
+/* Range input */
+input[type="range"] { flex: 1; }

@@ -82,17 +82,21 @@ async function tryFetchBytes(
   }
 }
 
-/** Collect candidate attachments: adapter-declared files + inline images. */
+/** Collect candidate attachments: adapter-declared files + per-message attachments + inline images. */
 function gatherAttachments(conv: Conversation): Attachment[] {
   const out: Attachment[] = [...conv.attachments];
   const seen = new Set(out.map((a) => a.sourceUrl ?? a.id));
+  const push = (a: Attachment) => {
+    const key = a.sourceUrl ?? a.id;
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push(a);
+  };
   for (const msg of conv.messages) {
+    for (const a of msg.attachments ?? []) push(a);
     for (const block of msg.content) {
       if (block.type === "image" && block.url) {
-        const key = block.url;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        out.push({
+        push({
           id: hashString(block.url),
           filename: filenameFromUrl(block.url, "image"),
           sourceUrl: block.url,
@@ -127,11 +131,19 @@ async function captureAttachments(
       continue;
     }
     const mime = a.mimeType ?? fetched.mime;
-    let base = a.filename && /\.[a-z0-9]{1,8}$/i.test(a.filename) ? a.filename : a.filename + extFromMime(mime);
-    base = base.replace(/[^A-Za-z0-9._-]+/g, "_").slice(0, 80) || `${a.id}${extFromMime(mime)}`;
+    const hasExt = /\.[a-z0-9]{1,8}$/i.test(a.filename);
+    let base = hasExt ? a.filename : `${a.filename}${extFromMime(mime)}`;
+    // Keep letters, digits, dot, dash, underscore, space. Trim length.
+    base = base.replace(/[\\/:*?"<>|]+/g, "_").replace(/\s+/g, " ").trim().slice(0, 120) ||
+      `${a.id}${extFromMime(mime)}`;
     let localPath = `attachments/${base}`;
     let n = 1;
-    while (used.has(localPath)) localPath = `attachments/${a.id}-${n++}-${base}`;
+    while (used.has(localPath)) {
+      const dot = base.lastIndexOf(".");
+      const stem = dot > 0 ? base.slice(0, dot) : base;
+      const ext = dot > 0 ? base.slice(dot) : "";
+      localPath = `attachments/${stem} (${n++})${ext}`;
+    }
     used.add(localPath);
     results.push({
       ...a,

@@ -189,6 +189,7 @@ async function runSave(port: chrome.runtime.Port, msg: StartSaveMessage): Promis
     type: "result",
     success: true,
     title: record.title,
+    conversationId: record.conversationId,
     messageCount: record.messageCount,
     attachmentCount: record.attachmentCount,
     generic: record.generic,

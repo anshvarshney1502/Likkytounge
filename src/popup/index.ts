@@ -5,6 +5,11 @@ import {
   type Settings,
 } from "../shared/messages";
 import { applyTheme } from "../shared/theme";
+import { storage } from "../storage/indexeddb";
+import { resolveAttachmentFiles } from "../export/attachments";
+import { exportConversation } from "../export/archive";
+import { conversationToPlaintext } from "../export/plaintext";
+import { downloadBlob } from "../shared/download";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -15,6 +20,8 @@ const stepsEl = $<HTMLUListElement>("steps");
 const resultEl = $<HTMLDivElement>("result");
 
 let activeTabId: number | null = null;
+let currentSettings: Settings | null = null;
+let lastSavedConversationId: string | null = null;
 
 function timeAgo(iso: string | null): string {
   if (!iso) return "—";
@@ -28,8 +35,8 @@ function timeAgo(iso: string | null): string {
 }
 
 async function init(): Promise<void> {
-  const settings = (await chrome.runtime.sendMessage({ type: "GET_SETTINGS" })) as Settings;
-  applyTheme(settings.theme);
+  currentSettings = (await chrome.runtime.sendMessage({ type: "GET_SETTINGS" })) as Settings;
+  applyTheme(currentSettings.theme);
 
   const info = (await chrome.runtime.sendMessage({
     type: "GET_ACTIVE_DETECTION",
@@ -65,6 +72,39 @@ function renderSteps(activeKey: string): void {
   }).join("");
 }
 
+async function runPostSaveActions(): Promise<void> {
+  if (!currentSettings || !lastSavedConversationId) return;
+  const record = await storage.getConversation(lastSavedConversationId);
+  if (!record) return;
+
+  if (currentSettings.copyOnSave) {
+    try {
+      const text = conversationToPlaintext(record.conversation, {
+        includeTimestamps: currentSettings.includeTimestamps,
+        includeWarnings: currentSettings.includeWarnings,
+      });
+      await navigator.clipboard.writeText(text);
+    } catch {
+      /* clipboard denied; ignore silently */
+    }
+  }
+
+  if (currentSettings.autoDownloadOnSave !== "off") {
+    const blobs = await storage.getAttachmentBlobs(record.conversationId);
+    const files = await resolveAttachmentFiles(record.conversation, blobs);
+    const { blob, filename } = await exportConversation(
+      record.conversation,
+      currentSettings.autoDownloadOnSave,
+      files,
+      {
+        includeTimestamps: currentSettings.includeTimestamps,
+        includeWarnings: currentSettings.includeWarnings,
+      },
+    );
+    downloadBlob(blob, filename);
+  }
+}
+
 function showResult(ev: Extract<SaveEvent, { type: "result" }>): void {
   resultEl.hidden = false;
   if (ev.success) {
@@ -78,17 +118,17 @@ function showResult(ev: Extract<SaveEvent, { type: "result" }>): void {
       `${ev.messageCount} messages` +
       (ev.attachmentCount ? `, ${ev.attachmentCount} attachment(s)` : "") +
       warns;
-    // mark all steps done
     stepsEl.innerHTML = STAGES.map(
       (s) => `<li class="ok"><span class="mark">✓</span>${s.label}</li>`,
     ).join("");
     lastSaved.textContent = "just now";
+    void runPostSaveActions();
   } else {
     resultEl.className = "result err";
     resultEl.innerHTML = `<strong>✕ Not saved.</strong> ${ev.reason ?? "Unknown error."}`;
   }
   saveBtn.disabled = false;
-  saveBtn.textContent = "Save Current Chat";
+  saveBtn.textContent = "💾 Save Current Chat";
 }
 
 function startSave(): void {
@@ -101,7 +141,10 @@ function startSave(): void {
   const port = chrome.runtime.connect({ name: SAVE_PORT });
   port.onMessage.addListener((ev: SaveEvent) => {
     if (ev.type === "progress") renderSteps(ev.stage === "done" ? "store" : ev.stage);
-    else showResult(ev);
+    else {
+      if (ev.success && ev.conversationId) lastSavedConversationId = ev.conversationId;
+      showResult(ev);
+    }
   });
   port.onDisconnect.addListener(() => {
     if (saveBtn.disabled && resultEl.hidden) {
@@ -109,7 +152,7 @@ function startSave(): void {
       resultEl.className = "result err";
       resultEl.textContent = "Save interrupted.";
       saveBtn.disabled = false;
-      saveBtn.textContent = "Save Current Chat";
+      saveBtn.textContent = "💾 Save Current Chat";
     }
   });
   port.postMessage({ type: "START_SAVE", tabId: activeTabId, mode: "new" });

@@ -3,15 +3,26 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Library · LocalChatVault</title>
+  <title>Library · Likky Tounge</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <main class="page" role="main">
+  <header class="topbar">
     <div class="brand">
       <img src="./icons/icon48.png" alt="" width="28" height="28">
-      <h1 style="margin:0;">LocalChatVault Library</h1>
+      <div>
+        <strong>Likky Tounge</strong>
+        <div class="tagline muted">Your local AI-chat vault.</div>
+      </div>
     </div>
+    <nav class="topnav">
+      <a class="btn" href="./library.html">📚 Library</a>
+      <a class="btn" href="./settings.html">⚙️ Settings</a>
+    </nav>
+  </header>
+
+  <main class="page" role="main">
+    <h1 style="margin:0;">Library</h1>
     <p class="muted">Everything here is stored locally on this device. Nothing is uploaded.</p>
 
     <div class="toolbar">
@@ -22,12 +33,13 @@
         <option value="oldest">Oldest first</option>
         <option value="title">Title A–Z</option>
       </select>
-      <button id="export-all" class="btn">Export all</button>
+      <button id="export-all" class="btn">Backup all</button>
       <button id="delete-all" class="btn btn-danger">Delete all</button>
     </div>
 
+    <div id="stats" class="stats muted"></div>
     <div id="list" class="list" aria-live="polite"></div>
-    <div id="empty" class="empty" hidden>No saved conversations yet.</div>
+    <div id="empty" class="empty" hidden>No saved conversations yet.<br><span class="muted">Open a supported chat and click <b>Save Current Chat</b>.</span></div>
   </main>
   <script src="./library.js"></script>
 </body>

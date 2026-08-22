@@ -10,6 +10,7 @@ import { applyTheme } from "../shared/theme";
 import { supportedPlatforms } from "../adapters/registry";
 import { randomId } from "../utils/id";
 import { makeBlob } from "../utils/bytes";
+import { APP_VERSION } from "../shared/brand";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -38,9 +39,18 @@ async function refreshStorage(): Promise<void> {
 function bind(settings: Settings): void {
   ($("autoSave") as HTMLInputElement).checked = settings.autoSave;
   ($("saveAttachments") as HTMLInputElement).checked = settings.saveAttachments;
+  const rng = $("maxAttachmentBytes") as HTMLInputElement;
+  const mb = Math.max(1, Math.round(settings.maxAttachmentBytes / (1024 * 1024)));
+  rng.value = String(mb);
+  $("maxAttachmentBytesLabel").textContent = `${mb} MB`;
+  ($("autoDownloadOnSave") as HTMLSelectElement).value = settings.autoDownloadOnSave;
+  ($("copyOnSave") as HTMLInputElement).checked = settings.copyOnSave;
   ($("defaultExportFormat") as HTMLSelectElement).value = settings.defaultExportFormat;
+  ($("includeTimestamps") as HTMLInputElement).checked = settings.includeTimestamps;
+  ($("includeWarnings") as HTMLInputElement).checked = settings.includeWarnings;
   ($("theme") as HTMLSelectElement).value = settings.theme;
   ($("debugMode") as HTMLInputElement).checked = settings.debugMode;
+  $("about-version").textContent = APP_VERSION;
 }
 
 function wireInputs(): void {
@@ -50,8 +60,28 @@ function wireInputs(): void {
   $("saveAttachments").addEventListener("change", (e) =>
     save({ saveAttachments: (e.target as HTMLInputElement).checked }),
   );
+  const rng = $("maxAttachmentBytes") as HTMLInputElement;
+  rng.addEventListener("input", () => {
+    const mb = Number(rng.value);
+    $("maxAttachmentBytesLabel").textContent = `${mb} MB`;
+  });
+  rng.addEventListener("change", () => {
+    void save({ maxAttachmentBytes: Number(rng.value) * 1024 * 1024 });
+  });
+  $("autoDownloadOnSave").addEventListener("change", (e) =>
+    save({ autoDownloadOnSave: (e.target as HTMLSelectElement).value as Settings["autoDownloadOnSave"] }),
+  );
+  $("copyOnSave").addEventListener("change", (e) =>
+    save({ copyOnSave: (e.target as HTMLInputElement).checked }),
+  );
   $("defaultExportFormat").addEventListener("change", (e) =>
     save({ defaultExportFormat: (e.target as HTMLSelectElement).value as Settings["defaultExportFormat"] }),
+  );
+  $("includeTimestamps").addEventListener("change", (e) =>
+    save({ includeTimestamps: (e.target as HTMLInputElement).checked }),
+  );
+  $("includeWarnings").addEventListener("change", (e) =>
+    save({ includeWarnings: (e.target as HTMLInputElement).checked }),
   );
   $("theme").addEventListener("change", async (e) => {
     const theme = (e.target as HTMLSelectElement).value as Settings["theme"];
@@ -73,8 +103,12 @@ async function exportAll(): Promise<void> {
     const blobs = await storage.getAttachmentBlobs(rec.conversationId);
     items.push({ conv: rec.conversation, attachments: await resolveAttachmentFiles(rec.conversation, blobs) });
   }
-  const blob = await buildBackupZip(items);
-  downloadBlob(blob, `localchatvault-backup-${new Date().toISOString().slice(0, 10)}.zip`);
+  const settings = await loadSettings();
+  const blob = await buildBackupZip(items, {
+    includeTimestamps: settings.includeTimestamps,
+    includeWarnings: settings.includeWarnings,
+  });
+  downloadBlob(blob, `likky-tounge-backup-${new Date().toISOString().slice(0, 10)}.zip`);
   $("io-status").textContent = `Exported ${items.length} conversation(s).`;
 }
 
@@ -99,7 +133,6 @@ function recordFromConversation(conv: Conversation): StoredConversation {
 async function importBackup(file: File): Promise<void> {
   $("io-status").textContent = "Reading backup…";
   const entries = await readZip(await file.arrayBuffer());
-  // Group entries by top-level folder.
   const folders = new Set<string>();
   for (const path of entries.keys()) {
     const slash = path.indexOf("/");
@@ -117,7 +150,6 @@ async function importBackup(file: File): Promise<void> {
       continue;
     }
     if (!parsed.metadata?.conversationId) continue;
-
     const blobs: AttachmentBlob[] = [];
     for (const a of parsed.attachments) {
       if (!a.localPath) continue;
@@ -142,7 +174,7 @@ function renderSupported(): void {
   $("supported").innerHTML =
     supportedPlatforms()
       .map((p) => `<li>${p.label}</li>`)
-      .join("") + `<li>Other sites — via generic extraction (best effort)</li>`;
+      .join("") + `<li>Other AI chat sites — via generic extraction (best-effort)</li>`;
 }
 
 async function init(): Promise<void> {

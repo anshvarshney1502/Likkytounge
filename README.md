@@ -1,6 +1,8 @@
-# LocalChatVault
+# Likky Tounge
 
 **Save your AI chat conversations locally with one click.** Privacy-first, open-source, no account, no cloud, no telemetry.
+
+Repository: <https://github.com/anshvarshney1502/Likkytounge>
 
 Open a supported AI chat → click **Save Current Chat** → the whole conversation is captured and stored in your browser's local database. Everything stays on your machine.
 
@@ -13,7 +15,8 @@ Open a supported AI chat → click **Save Current Chat** → the whole conversat
 - Captures **messages, roles, ordering, code blocks (with language), links, images, and lists**, normalized into a single platform-independent schema.
 - Best-effort **attachment capture** (images/files) into a local archive, with honest metadata when a file can't be accessed.
 - **Local library** to search, filter, sort, open, export, and delete saved chats.
-- **Exports**: JSON, Markdown, HTML, and a complete **ZIP** archive — all generated locally.
+- **Exports**: **Plain text (.txt)**, JSON, Markdown, HTML, and a complete **ZIP** archive — all generated locally. The ZIP contains every format at once.
+- **Copy to clipboard** or **auto-download** after every save (opt-in).
 - **Backup / restore** your whole vault as a portable ZIP (move between machines, no cloud).
 - **IndexedDB** storage with a **versioned, migratable schema**.
 

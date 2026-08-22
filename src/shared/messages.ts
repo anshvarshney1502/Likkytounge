@@ -1,13 +1,23 @@
 // Message protocol between popup <-> background <-> content script.
 import type { Conversation, ExtractionResult } from "./types";
 
-export type ExportFormat = "json" | "markdown" | "html" | "zip";
+export type ExportFormat = "json" | "markdown" | "plaintext" | "html" | "zip";
+
+export type AutoDownloadFormat = "off" | ExportFormat;
 
 export interface Settings {
   autoSave: boolean;
   saveAttachments: boolean;
   maxAttachmentBytes: number;
   defaultExportFormat: ExportFormat;
+  /** Automatically download a file after each save (in addition to the local vault). */
+  autoDownloadOnSave: AutoDownloadFormat;
+  /** Copy the saved conversation (plain-text) to the clipboard after saving. */
+  copyOnSave: boolean;
+  /** Include per-message timestamps in exports when the platform provided them. */
+  includeTimestamps: boolean;
+  /** Include extraction warnings in exports. */
+  includeWarnings: boolean;
   theme: "system" | "light" | "dark";
   debugMode: boolean;
 }
@@ -15,8 +25,12 @@ export interface Settings {
 export const DEFAULT_SETTINGS: Settings = {
   autoSave: false, // MUST be off by default.
   saveAttachments: true,
-  maxAttachmentBytes: 25 * 1024 * 1024,
+  maxAttachmentBytes: 50 * 1024 * 1024,
   defaultExportFormat: "zip",
+  autoDownloadOnSave: "off",
+  copyOnSave: false,
+  includeTimestamps: true,
+  includeWarnings: true,
   theme: "system",
   debugMode: false,
 };
@@ -65,6 +79,7 @@ export interface SaveDoneEvent {
   success: boolean;
   reason?: string;
   title?: string;
+  conversationId?: string;
   messageCount?: number;
   attachmentCount?: number;
   generic?: boolean;
