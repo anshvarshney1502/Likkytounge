@@ -1,5 +1,6 @@
 import type { ContextMessage, ContextRole } from "../types";
 import { elementToText } from "./serialize";
+import { extractByStructuralPairing, looksIncomplete, lowestCommonAncestor } from "./structural-fallback";
 
 export interface PlatformAdapter {
   id: string;
@@ -41,6 +42,44 @@ function nearestScrollable(el: Element | null): Element | null {
   return document.scrollingElement;
 }
 
+/**
+ * Best-effort scan for AI-generated files/artifacts that live OUTSIDE the
+ * normal message flow (e.g. a side "Artifact"/"Canvas" panel). We never
+ * fetch binary contents — only filenames, types, and any visible text the
+ * panel already renders — appended as a labeled block so the destination
+ * model at least knows a file existed and what it contained/was called.
+ */
+const ARTIFACT_SELECTORS = [
+  "[data-testid*='artifact' i]",
+  "[class*='artifact' i]",
+  "[class*='canvas' i][class*='panel' i]",
+  "[data-testid*='canvas' i]",
+];
+function collectArtifactNotes(doc: Document, alreadyIncluded: Set<Element>): string[] {
+  const notes: string[] = [];
+  const seen = new Set<Element>();
+  for (const sel of ARTIFACT_SELECTORS) {
+    let found: NodeListOf<Element>;
+    try {
+      found = doc.querySelectorAll(sel);
+    } catch {
+      continue;
+    }
+    found.forEach((el) => {
+      if (seen.has(el)) return;
+      if ([...alreadyIncluded].some((inc) => inc.contains(el) || el.contains(inc))) return;
+      // Only take top-level matches (skip if an ancestor already matched).
+      if ([...seen].some((s) => s.contains(el))) return;
+      seen.add(el);
+      const titleEl = el.querySelector("h1, h2, h3, [class*='title' i], [data-testid*='title' i]");
+      const title = textOf(titleEl) || "Generated file";
+      const body = elementToText(el);
+      if (body) notes.push(`**${title}**\n\n${body}`);
+    });
+  }
+  return notes;
+}
+
 // ---------------------------------------------------------------- ChatGPT --
 const chatgpt: PlatformAdapter = {
   id: "chatgpt",
@@ -55,12 +94,20 @@ const chatgpt: PlatformAdapter = {
   },
   extractMessages(doc) {
     const out: ContextMessage[] = [];
+    const included = new Set<Element>();
     doc.querySelectorAll("[data-message-author-role]").forEach((el) => {
       const role = normalizeRole(el.getAttribute("data-message-author-role"));
-      const contentEl = el.querySelector(".markdown, .whitespace-pre-wrap") ?? el;
+      const contentEl =
+        el.querySelector(".markdown, .whitespace-pre-wrap, [class*='markdown' i]") ?? el;
       const text = elementToText(contentEl);
-      if (text) out.push({ role, text });
+      if (text) {
+        out.push({ role, text });
+        included.add(el);
+      }
     });
+    for (const note of collectArtifactNotes(doc, included)) {
+      out.push({ role: "assistant", text: note });
+    }
     return out;
   },
   findInput(doc) {
@@ -75,32 +122,66 @@ const chatgpt: PlatformAdapter = {
 };
 
 // ----------------------------------------------------------------- Claude --
+// User turns reliably carry data-testid='user-message'. Assistant turns have
+// used several different class names across Claude's UI revisions, so we
+// try a broad set of candidates AND fall back to structural sibling-pairing
+// (using the reliable user anchor) whenever the candidates come up short —
+// this is what actually fixes "assistant replies go missing" instead of
+// just adding one more guess that can go stale again.
+const CLAUDE_USER_SEL = "[data-testid='user-message']";
+const CLAUDE_ASSISTANT_SELECTORS = [
+  "[data-testid='assistant-message']",
+  "[data-testid='chat-message-assistant']",
+  "div[class*='font-claude-message' i]",
+  "div[class*='claude-message' i]",
+  "div[class*='assistant-message' i]",
+  "[data-is-streaming]",
+];
 const claude: PlatformAdapter = {
   id: "claude",
   label: "Claude",
   hostMatch: /^claude\.ai$/,
   findScrollContainer(doc) {
-    const first = doc.querySelector("[data-testid='user-message'], .font-claude-message");
+    const first = doc.querySelector(CLAUDE_USER_SEL) ?? doc.querySelector(CLAUDE_ASSISTANT_SELECTORS.join(","));
     return nearestScrollable(first);
   },
   countMessages(doc) {
-    return doc.querySelectorAll("[data-testid='user-message'], .font-claude-message").length;
+    const users = doc.querySelectorAll(CLAUDE_USER_SEL).length;
+    const assistants = doc.querySelectorAll(CLAUDE_ASSISTANT_SELECTORS.join(",")).length;
+    return Math.max(users + assistants, users * 2);
   },
   extractMessages(doc) {
-    const nodes = Array.from(
-      doc.querySelectorAll<HTMLElement>("[data-testid='user-message'], .font-claude-message"),
-    );
-    // Drop wrappers that contain another matched node (keep leaves).
+    const userNodes = Array.from(doc.querySelectorAll<HTMLElement>(CLAUDE_USER_SEL));
+    const assistantNodes = Array.from(
+      doc.querySelectorAll<HTMLElement>(CLAUDE_ASSISTANT_SELECTORS.join(",")),
+    ).filter((el) => !userNodes.some((u) => el.contains(u) || u.contains(el)));
+
+    if (looksIncomplete(assistantNodes.length, userNodes.length)) {
+      const scope = lowestCommonAncestor(userNodes);
+      const structural = extractByStructuralPairing(scope, userNodes, { minAssistantChars: 2 });
+      if (structural.filter((m) => m.role === "assistant").length > assistantNodes.length) {
+        return structural;
+      }
+    }
+
+    const nodes = [...userNodes, ...assistantNodes];
     const leaves = nodes.filter((el) => !nodes.some((o) => o !== el && el.contains(o)));
     leaves.sort((a, b) =>
       a === b ? 0 : a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1,
     );
     const out: ContextMessage[] = [];
+    const included = new Set<Element>();
     for (const el of leaves) {
-      const role: ContextRole = el.matches("[data-testid='user-message']") ? "user" : "assistant";
-      const contentEl = el.querySelector(".prose") ?? el;
+      const role: ContextRole = el.matches(CLAUDE_USER_SEL) ? "user" : "assistant";
+      const contentEl = el.querySelector(".prose, [class*='prose' i]") ?? el;
       const text = elementToText(contentEl);
-      if (text) out.push({ role, text });
+      if (text) {
+        out.push({ role, text });
+        included.add(el);
+      }
+    }
+    for (const note of collectArtifactNotes(doc, included)) {
+      out.push({ role: "assistant", text: note });
     }
     return out;
   },
@@ -113,28 +194,48 @@ const claude: PlatformAdapter = {
 };
 
 // ----------------------------------------------------------------- Gemini --
+const GEMINI_USER_SEL = "user-query";
+const GEMINI_ASSISTANT_SEL = "model-response";
 const gemini: PlatformAdapter = {
   id: "gemini",
   label: "Gemini",
   hostMatch: /^gemini\.google\.com$/,
   findScrollContainer(doc) {
-    const first = doc.querySelector("user-query, model-response");
+    const first = doc.querySelector(`${GEMINI_USER_SEL}, ${GEMINI_ASSISTANT_SEL}`);
     return nearestScrollable(first);
   },
   countMessages(doc) {
-    return doc.querySelectorAll("user-query, model-response").length;
+    return doc.querySelectorAll(`${GEMINI_USER_SEL}, ${GEMINI_ASSISTANT_SEL}`).length;
   },
   extractMessages(doc) {
-    const nodes = Array.from(doc.querySelectorAll<HTMLElement>("user-query, model-response"));
+    const userNodes = Array.from(doc.querySelectorAll<HTMLElement>(GEMINI_USER_SEL));
+    const assistantNodes = Array.from(doc.querySelectorAll<HTMLElement>(GEMINI_ASSISTANT_SEL));
+
+    if (looksIncomplete(assistantNodes.length, userNodes.length)) {
+      const scope = lowestCommonAncestor(userNodes);
+      const structural = extractByStructuralPairing(scope, userNodes, { minAssistantChars: 2 });
+      if (structural.filter((m) => m.role === "assistant").length > assistantNodes.length) {
+        return structural;
+      }
+    }
+
+    const nodes = [...userNodes, ...assistantNodes];
     nodes.sort((a, b) =>
       a === b ? 0 : a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1,
     );
     const out: ContextMessage[] = [];
+    const included = new Set<Element>();
     for (const el of nodes) {
-      const role: ContextRole = el.tagName.toLowerCase() === "user-query" ? "user" : "assistant";
-      const contentEl = el.querySelector(".query-text, .markdown, message-content") ?? el;
+      const role: ContextRole = el.tagName.toLowerCase() === GEMINI_USER_SEL ? "user" : "assistant";
+      const contentEl = el.querySelector(".query-text, .markdown, message-content, [class*='markdown' i]") ?? el;
       const text = elementToText(contentEl);
-      if (text) out.push({ role, text });
+      if (text) {
+        out.push({ role, text });
+        included.add(el);
+      }
+    }
+    for (const note of collectArtifactNotes(doc, included)) {
+      out.push({ role: "assistant", text: note });
     }
     return out;
   },
@@ -151,25 +252,33 @@ const gemini: PlatformAdapter = {
 
 // --------------------------------------------------------------- DeepSeek --
 // DeepSeek's DOM is not officially documented here; this uses best-effort
-// heuristics (data-testid / class hints) similar to a generic fallback. If
-// selectors find nothing, extraction reports a clear failure rather than a
-// silent empty capture.
+// heuristics (data-testid / class hints) plus the same structural fallback.
+// If nothing can be identified at all, extraction reports a clear failure
+// rather than a silent empty capture.
 const deepseek: PlatformAdapter = {
   id: "deepseek",
   label: "DeepSeek",
   hostMatch: /^chat\.deepseek\.com$/,
   findScrollContainer(doc) {
-    const first = doc.querySelector("[class*='message'], [class*='chat-message']");
+    const first = doc.querySelector("[class*='message' i], [class*='chat-message' i]");
     return nearestScrollable(first);
   },
   countMessages(doc) {
-    return doc.querySelectorAll("[class*='message'], [class*='chat-message']").length;
+    return doc.querySelectorAll("[class*='message' i], [class*='chat-message' i]").length;
   },
   extractMessages(doc) {
     const nodes = Array.from(
-      doc.querySelectorAll<HTMLElement>("[class*='message'], [class*='chat-message']"),
+      doc.querySelectorAll<HTMLElement>("[class*='message' i], [class*='chat-message' i]"),
     ).filter((el) => textOf(el).length > 0);
     const leaves = nodes.filter((el) => !nodes.some((o) => o !== el && el.contains(o)));
+
+    const userGuess = leaves.filter((el) => /user|human/i.test(el.getAttribute("class") ?? ""));
+    if (userGuess.length > 0 && looksIncomplete(leaves.length - userGuess.length, userGuess.length)) {
+      const scope = lowestCommonAncestor(userGuess);
+      const structural = extractByStructuralPairing(scope, userGuess, { minAssistantChars: 2 });
+      if (structural.length > leaves.length) return structural;
+    }
+
     const out: ContextMessage[] = [];
     leaves.forEach((el, i) => {
       const cls = (el.getAttribute("class") ?? "").toLowerCase();

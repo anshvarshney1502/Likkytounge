@@ -191,6 +191,17 @@ sidebarEl.addEventListener("click", (e) => {
 
 window.addEventListener("hashchange", render);
 
+// Single persistent outside-click handler for every dropdown/menu in the
+// app (viewer's Export/More menus, sidebar's per-item ⋯ menu). Toggle
+// buttons call stopPropagation() on their own click so opening a menu never
+// immediately closes it; every other click reaching here closes whatever is
+// open. Registered once — never re-added per render, so it can't self-
+// consume or accumulate duplicate listeners across re-renders.
+document.addEventListener("click", () => {
+  document.querySelectorAll(".dropdown.open, .item-menu.open").forEach((el) => el.classList.remove("open"));
+  document.querySelectorAll(".more-btn.open").forEach((el) => el.classList.remove("open"));
+});
+
 async function boot(): Promise<void> {
   settings = await getSettings();
   applyTheme(settings.theme);

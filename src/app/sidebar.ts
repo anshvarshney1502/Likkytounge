@@ -54,12 +54,12 @@ function itemHtml(c: SavedContextMeta, s: SidebarState): string {
       </div>
       <button class="more-btn" data-more="${esc(c.id)}" aria-label="More actions" title="More actions">⋯</button>
       <div class="item-menu" id="menu-${esc(c.id)}">
-        <button data-act="open" data-id="${esc(c.id)}">↗ Open</button>
-        <button data-act="rename" data-id="${esc(c.id)}">✎ Rename</button>
-        <button data-act="copy" data-id="${esc(c.id)}">📋 Copy</button>
-        <button data-act="share" data-id="${esc(c.id)}">📤 Share</button>
-        <button data-act="export" data-id="${esc(c.id)}">⬇️ Export (default)</button>
-        <button data-act="delete" data-id="${esc(c.id)}" class="danger">🗑 Delete</button>
+        <button data-act="open" data-id="${esc(c.id)}">Open</button>
+        <button data-act="rename" data-id="${esc(c.id)}">Rename</button>
+        <button data-act="copy" data-id="${esc(c.id)}">Copy</button>
+        <button data-act="share" data-id="${esc(c.id)}">Share</button>
+        <button data-act="export" data-id="${esc(c.id)}">Export</button>
+        <button data-act="delete" data-id="${esc(c.id)}" class="danger">Delete</button>
       </div>
       <span class="sr-only">${fmtBytes(c.approxSizeBytes)}</span>
     </div>`;
@@ -71,7 +71,6 @@ export function renderSidebarList(container: HTMLElement, s: SidebarState, h: Si
   if (s.allMeta.length === 0) {
     container.innerHTML = `
       <div class="sidebar-empty">
-        <div style="font-size:26px; margin-bottom:8px;">🗂️</div>
         Your context library is empty.<br><br>
         Open ChatGPT, Claude, Gemini, or DeepSeek, click Pikachu, and your first
         conversation context will appear here.

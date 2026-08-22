@@ -87,7 +87,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
           await db.bumpUsage(msg.id);
           return sendResponse({ ok: true });
         case "OPEN_LIBRARY":
-          await chrome.tabs.create({ url: chrome.runtime.getURL("library.html") });
+          await chrome.tabs.create({ url: chrome.runtime.getURL("app.html") });
           return sendResponse({ ok: true });
         case "GET_LATEST_CONTEXT":
           return sendResponse(await getLatestContext());

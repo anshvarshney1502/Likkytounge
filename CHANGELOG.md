@@ -10,6 +10,26 @@ semantic versioning once it reaches 1.0.
 - Swap the placeholder inline-SVG Pikachu for the real provided artwork (`public/pikachu.png`) — one-line change once the asset is available.
 - Additional site adapters for Generate/Upload Context (Copilot, Grok, Qwen).
 - Per-context version history (currently only the single "latest" pointer is tracked; every generation is kept, but not edited-in-place history of the same context).
+- Real text extraction from generated file attachments (PDF/PPT/DOCX) — currently out of scope to keep the extension dependency-free; only filenames/links and any artifact-panel text already visible in the page are captured.
+
+## [0.5.1] — 2026-08-23
+
+### Fixed
+- **Assistant replies missing from Generate Context on Claude (and, latently, any platform).** The Claude adapter's assistant-message selector was a single guessed CSS class with no fallback — when it didn't match, user messages (found via a separate, reliable selector) kept working while every assistant reply silently vanished, producing a context with only prompts and no responses. Fixed with a two-part change:
+  - Broadened the candidate selector list for Claude's assistant messages.
+  - Added a new **structural fallback** (`src/context/extract/structural-fallback.ts`): using only the *reliable* user-message anchors, it finds the DOM depth where conversation turns repeat as siblings via a lowest-common-ancestor + breadth-first search, and classifies each sibling block as user (contains an anchor) or assistant (everything else with real text) — independent of any specific class name. Wired into Claude, Gemini, and DeepSeek's adapters, all of which had the same single-selector fragility.
+  - Covered by 5 new tests, including one that reproduces the exact reported failure (assistant wrapper class renamed to something never seen before) and asserts replies are still captured.
+- **Export/More dropdown menus silently stopped closing on outside-click after the first interaction.** The click-outside handler was registered with `{once: true}` on every `renderViewer()` call, so it self-removed after the first bubbling click and was never replaced until the viewer re-rendered — meaning after one menu interaction, clicking away no longer closed the Export or More menu for the rest of that session. Replaced with a single persistent handler registered once at app boot.
+- **Sidebar's `⋯` context menu never closed on outside-click at all** (no handler existed for that case previously) — now covered by the same persistent handler above.
+- Fixed a dead code path in the background service worker that still opened the deleted `library.html` (from the v0.3 pivot) instead of `app.html` — unreachable today (nothing currently sends that message), but a landmine for future callers.
+- Best-effort capture of AI-generated files/artifacts that render outside the normal message flow (e.g. a side panel): filename/title and any visible text are appended to the captured context. This does not fetch binary file contents (PDF/DOCX/etc.) — see Planned.
+
+### Changed — visual simplification
+Per direct feedback that the interface read as generic "AI-generated" UI, stripped the decorative flourishes and tightened the visual language:
+- Removed the popup's decorative radial-gradient blob and the CTA button's hover-slide arrow animation.
+- Reduced shadow blur/spread and border-radius scale throughout (was glossier/rounder than intended).
+- Removed emoji from the sidebar's `⋯` item menu, the viewer toolbar (Copy/Share/Export are now plain text), empty states, and the About page's feature grid and Connect links — icons only where they carry real meaning (the latest-context dot, the warning triangle).
+- About page: removed the redundant "LIKKY TOUNGE" eyebrow sitting directly above an "Likky Tounge" heading, and the marketing-style pull quote.
 
 ## [0.5.0] — 2026-08-23
 

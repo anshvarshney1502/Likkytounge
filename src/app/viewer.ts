@@ -69,9 +69,9 @@ export function renderViewer(main: HTMLElement, ctx: SavedContext, h: ViewerHand
         <div class="sub">${esc(ctx.platformLabel)} · Generated ${timeAgo(ctx.capturedAt)} · ${ctx.messageCount} messages · ${fmtBytes(ctx.approxSizeBytes)}</div>
       </div>
       <div class="viewer-actions">
-        <button class="btn" id="v-copy">📋 <span class="lbl">Copy</span></button>
-        <button class="btn" id="v-share">📤 <span class="lbl">Share</span></button>
-        <button class="btn" id="v-export">⬇️ <span class="lbl">Export</span></button>
+        <button class="btn" id="v-copy">Copy</button>
+        <button class="btn" id="v-share">Share</button>
+        <button class="btn" id="v-export">Export</button>
         <div class="dropdown" id="v-export-menu">
           <button data-fmt="markdown">Markdown (.md)</button>
           <button data-fmt="plaintext">Plain Text (.txt)</button>
@@ -156,14 +156,17 @@ export function renderViewer(main: HTMLElement, ctx: SavedContext, h: ViewerHand
     closeMenus();
     if (confirm(`Delete "${ctx.title}"? This cannot be undone.`)) h.onDeleted(ctx.id);
   });
-  document.addEventListener("click", closeMenus, { once: true });
+  // Outside-click-to-close for these dropdowns is handled by one persistent
+  // global listener (see app/index.ts) rather than a per-render listener —
+  // a `{once:true}` listener re-added on every renderViewer() call would
+  // self-consume after the first bubbling click and silently stop working
+  // for the rest of the session.
 }
 
 export function renderEmptyState(main: HTMLElement, hasAnyContexts: boolean): void {
   if (!hasAnyContexts) {
     main.innerHTML = `
       <div class="main-empty">
-        <div class="glyph">🗂️</div>
         <h2>Your context library is empty.</h2>
         <p>Generate your first conversation context and it will appear here. Open ChatGPT, Claude, Gemini, or DeepSeek, click Pikachu, and your entire conversation is captured — ready to carry anywhere.</p>
       </div>`;
@@ -171,7 +174,6 @@ export function renderEmptyState(main: HTMLElement, hasAnyContexts: boolean): vo
   }
   main.innerHTML = `
     <div class="main-empty">
-      <div class="glyph">📖</div>
       <h2>Select a context to read it.</h2>
       <p>Choose any saved conversation from the sidebar — rendered as a clean, readable document, not raw Markdown.</p>
     </div>`;
