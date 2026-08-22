@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Settings · LocalChatVault</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="page" role="main">
+    <div class="brand">
+      <img src="./icons/icon48.png" alt="" width="28" height="28">
+      <h1 style="margin:0;">LocalChatVault Settings</h1>
+    </div>
+
+    <div class="field switch">
+      <input type="checkbox" id="autoSave">
+      <label for="autoSave">Auto-save (experimental)</label>
+    </div>
+    <p class="hint muted" style="margin-top:-8px;">Off by default. When available, saves supported chats without a manual click.</p>
+
+    <div class="field switch">
+      <input type="checkbox" id="saveAttachments">
+      <label for="saveAttachments">Save attachments when accessible</label>
+    </div>
+
+    <div class="field">
+      <label for="defaultExportFormat">Default export format</label>
+      <select id="defaultExportFormat">
+        <option value="zip">ZIP (complete archive)</option>
+        <option value="markdown">Markdown</option>
+        <option value="html">HTML</option>
+        <option value="json">JSON</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="theme">Theme</label>
+      <select id="theme">
+        <option value="system">System</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+      </select>
+    </div>
+
+    <div class="field switch">
+      <input type="checkbox" id="debugMode">
+      <label for="debugMode">Debug mode (counts &amp; warnings only — never message contents)</label>
+    </div>
+
+    <section class="section">
+      <h2>Storage</h2>
+      <p id="storage-usage" class="muted">Calculating…</p>
+      <div class="row" style="gap:10px; flex-wrap:wrap;">
+        <button id="export-all" class="btn">Export all data (backup)</button>
+        <label class="btn" for="import-file">Import backup</label>
+        <input id="import-file" type="file" accept=".zip" hidden>
+        <button id="clear-all" class="btn btn-danger">Clear all local data</button>
+      </div>
+      <p id="io-status" class="muted" aria-live="polite"></p>
+    </section>
+
+    <section class="section">
+      <h2>Supported sites</h2>
+      <ul id="supported"></ul>
+    </section>
+
+    <section class="section">
+      <h2>About</h2>
+      <p class="muted">LocalChatVault is a privacy-first, open-source extension. All conversations,
+      attachments, settings, and indexes stay on this device. Nothing is sent to any server.</p>
+    </section>
+  </main>
+  <script src="./settings.js"></script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Library · LocalChatVault</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="page" role="main">
+    <div class="brand">
+      <img src="./icons/icon48.png" alt="" width="28" height="28">
+      <h1 style="margin:0;">LocalChatVault Library</h1>
+    </div>
+    <p class="muted">Everything here is stored locally on this device. Nothing is uploaded.</p>
+
+    <div class="toolbar">
+      <input id="search" type="search" placeholder="Search chats…" aria-label="Search chats">
+      <select id="platform" aria-label="Filter by platform"><option value="">All platforms</option></select>
+      <select id="sort" aria-label="Sort">
+        <option value="newest">Newest first</option>
+        <option value="oldest">Oldest first</option>
+        <option value="title">Title A–Z</option>
+      </select>
+      <button id="export-all" class="btn">Export all</button>
+      <button id="delete-all" class="btn btn-danger">Delete all</button>
+    </div>
+
+    <div id="list" class="list" aria-live="polite"></div>
+    <div id="empty" class="empty" hidden>No saved conversations yet.</div>
+  </main>
+  <script src="./library.js"></script>
+</body>
+</html>

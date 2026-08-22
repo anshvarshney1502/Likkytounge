@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LocalChatVault</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="popup" role="main">
+    <div class="brand">
+      <img src="./icons/icon48.png" alt="">
+      <strong>LocalChatVault</strong>
+    </div>
+
+    <button id="save" class="btn btn-primary" aria-describedby="site-label">Save Current Chat</button>
+
+    <div class="sitebox">
+      <div class="row spread">
+        <span class="muted">Current site</span>
+        <span id="site-label" class="pill">Checking…</span>
+      </div>
+      <div class="row spread" style="margin-top:6px;">
+        <span class="muted">Last saved</span>
+        <span id="last-saved" class="muted">—</span>
+      </div>
+    </div>
+
+    <section class="status" aria-live="polite">
+      <ul id="steps" class="steps" hidden></ul>
+      <div id="result" class="result" hidden></div>
+    </section>
+
+    <nav class="foot">
+      <a id="open-library" class="btn" href="./library.html" target="_blank" rel="noopener">Library</a>
+      <a id="open-settings" class="btn" href="./settings.html" target="_blank" rel="noopener">Settings</a>
+    </nav>
+  </main>
+  <script src="./popup.js"></script>
+</body>
+</html>

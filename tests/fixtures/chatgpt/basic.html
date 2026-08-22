@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<head><title>Sorting algorithms - ChatGPT</title></head>
+<body>
+  <main>
+    <h1>Sorting algorithms</h1>
+    <article data-testid="conversation-turn-1">
+      <div data-message-author-role="user" data-message-id="msg-u1">
+        <div class="whitespace-pre-wrap">How do I sort a list in Python? Show me <strong>quicksort</strong>.</div>
+      </div>
+    </article>
+    <article data-testid="conversation-turn-2">
+      <div data-message-author-role="assistant" data-message-id="msg-a1">
+        <div class="markdown">
+          <p>Here is a simple approach. See the <a href="https://docs.python.org/3/">docs</a>.</p>
+          <pre><code class="language-python">def quicksort(xs):
+    if len(xs) <= 1:
+        return xs
+    pivot = xs[0]
+    rest = xs[1:]
+    return quicksort([x for x in rest if x < pivot]) + [pivot] + quicksort([x for x in rest if x >= pivot])</code></pre>
+          <p>That runs in O(n log n) on average.</p>
+          <button>Copy code</button>
+        </div>
+      </div>
+    </article>
+  </main>
+</body>
+</html>
