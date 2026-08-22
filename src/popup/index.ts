@@ -1,162 +1,82 @@
-import {
-  SAVE_PORT,
-  type ActiveDetection,
-  type SaveEvent,
-  type Settings,
-} from "../shared/messages";
+import type { Capsule, Settings } from "../shared/types";
 import { applyTheme } from "../shared/theme";
-import { storage } from "../storage/indexeddb";
-import { resolveAttachmentFiles } from "../export/attachments";
-import { exportConversation } from "../export/archive";
-import { conversationToPlaintext } from "../export/plaintext";
-import { downloadBlob } from "../shared/download";
+import { randomId } from "../utils/id";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
-const saveBtn = $<HTMLButtonElement>("save");
-const siteLabel = $<HTMLSpanElement>("site-label");
-const lastSaved = $<HTMLSpanElement>("last-saved");
-const stepsEl = $<HTMLUListElement>("steps");
-const resultEl = $<HTMLDivElement>("result");
-
-let activeTabId: number | null = null;
-let currentSettings: Settings | null = null;
-let lastSavedConversationId: string | null = null;
-
-function timeAgo(iso: string | null): string {
-  if (!iso) return "—";
-  const diff = Date.now() - new Date(iso).getTime();
-  const m = Math.round(diff / 60000);
-  if (m < 1) return "just now";
-  if (m < 60) return `${m} min ago`;
-  const h = Math.round(m / 60);
-  if (h < 24) return `${h} h ago`;
-  return new Date(iso).toLocaleDateString();
-}
-
 async function init(): Promise<void> {
-  currentSettings = (await chrome.runtime.sendMessage({ type: "GET_SETTINGS" })) as Settings;
-  applyTheme(currentSettings.theme);
+  const settings = (await chrome.runtime.sendMessage({ type: "GET_SETTINGS" })) as Settings;
+  applyTheme(settings.theme);
+  await refresh();
 
-  const info = (await chrome.runtime.sendMessage({
-    type: "GET_ACTIVE_DETECTION",
-  })) as ActiveDetection;
-  activeTabId = info.tabId;
-
-  if (!info.detection || !info.detection.supported) {
-    siteLabel.textContent = info.detection?.platform ?? "Unsupported";
-    siteLabel.title = "No AI conversation detected on this page.";
-    saveBtn.disabled = true;
-  } else {
-    siteLabel.textContent = info.detection.platform + (info.detection.generic ? " (generic)" : "");
-    saveBtn.disabled = false;
-  }
-  lastSaved.textContent = timeAgo(info.lastSavedAt);
-}
-
-const STAGES: Array<{ key: string; label: string }> = [
-  { key: "detect", label: "Detecting platform" },
-  { key: "extract", label: "Extracting messages" },
-  { key: "attachments", label: "Extracting attachments" },
-  { key: "archive", label: "Creating local archive" },
-  { key: "store", label: "Saving locally" },
-];
-
-function renderSteps(activeKey: string): void {
-  stepsEl.hidden = false;
-  const activeIndex = STAGES.findIndex((s) => s.key === activeKey);
-  stepsEl.innerHTML = STAGES.map((s, i) => {
-    const state = i < activeIndex ? "ok" : i === activeIndex ? "active" : "";
-    const mark = i < activeIndex ? "✓" : i === activeIndex ? "…" : "○";
-    return `<li class="${state}"><span class="mark">${mark}</span>${s.label}</li>`;
-  }).join("");
-}
-
-async function runPostSaveActions(): Promise<void> {
-  if (!currentSettings || !lastSavedConversationId) return;
-  const record = await storage.getConversation(lastSavedConversationId);
-  if (!record) return;
-
-  if (currentSettings.copyOnSave) {
-    try {
-      const text = conversationToPlaintext(record.conversation, {
-        includeTimestamps: currentSettings.includeTimestamps,
-        includeWarnings: currentSettings.includeWarnings,
-      });
-      await navigator.clipboard.writeText(text);
-    } catch {
-      /* clipboard denied; ignore silently */
-    }
-  }
-
-  if (currentSettings.autoDownloadOnSave !== "off") {
-    const blobs = await storage.getAttachmentBlobs(record.conversationId);
-    const files = await resolveAttachmentFiles(record.conversation, blobs);
-    const { blob, filename } = await exportConversation(
-      record.conversation,
-      currentSettings.autoDownloadOnSave,
-      files,
-      {
-        includeTimestamps: currentSettings.includeTimestamps,
-        includeWarnings: currentSettings.includeWarnings,
-      },
-    );
-    downloadBlob(blob, filename);
-  }
-}
-
-function showResult(ev: Extract<SaveEvent, { type: "result" }>): void {
-  resultEl.hidden = false;
-  if (ev.success) {
-    resultEl.className = "result ok";
-    const warns =
-      ev.warnings && ev.warnings.length
-        ? `<ul class="warns">${ev.warnings.map((w) => `<li>${w}</li>`).join("")}</ul>`
-        : "";
-    resultEl.innerHTML =
-      `<strong>✓ ${ev.updated ? "Updated" : "Chat saved"}.</strong> ` +
-      `${ev.messageCount} messages` +
-      (ev.attachmentCount ? `, ${ev.attachmentCount} attachment(s)` : "") +
-      warns;
-    stepsEl.innerHTML = STAGES.map(
-      (s) => `<li class="ok"><span class="mark">✓</span>${s.label}</li>`,
-    ).join("");
-    lastSaved.textContent = "just now";
-    void runPostSaveActions();
-  } else {
-    resultEl.className = "result err";
-    resultEl.innerHTML = `<strong>✕ Not saved.</strong> ${ev.reason ?? "Unknown error."}`;
-  }
-  saveBtn.disabled = false;
-  saveBtn.textContent = "💾 Save Current Chat";
-}
-
-function startSave(): void {
-  if (activeTabId == null) return;
-  saveBtn.disabled = true;
-  saveBtn.textContent = "Saving…";
-  resultEl.hidden = true;
-  renderSteps("detect");
-
-  const port = chrome.runtime.connect({ name: SAVE_PORT });
-  port.onMessage.addListener((ev: SaveEvent) => {
-    if (ev.type === "progress") renderSteps(ev.stage === "done" ? "store" : ev.stage);
-    else {
-      if (ev.success && ev.conversationId) lastSavedConversationId = ev.conversationId;
-      showResult(ev);
-    }
+  $("new-save").addEventListener("click", saveNew);
+  $("new-body").addEventListener("keydown", (e) => {
+    if ((e as KeyboardEvent).ctrlKey && (e as KeyboardEvent).key === "Enter") saveNew();
   });
-  port.onDisconnect.addListener(() => {
-    if (saveBtn.disabled && resultEl.hidden) {
-      resultEl.hidden = false;
-      resultEl.className = "result err";
-      resultEl.textContent = "Save interrupted.";
-      saveBtn.disabled = false;
-      saveBtn.textContent = "💾 Save Current Chat";
-    }
-  });
-  port.postMessage({ type: "START_SAVE", tabId: activeTabId, mode: "new" });
 }
 
-saveBtn.addEventListener("click", startSave);
+async function refresh(): Promise<void> {
+  const capsules = (await chrome.runtime.sendMessage({ type: "LIST_CAPSULES" })) as Capsule[];
+  const recent = capsules.slice(0, 6);
+  $("count").textContent = String(capsules.length);
+  const ul = $<HTMLUListElement>("recent");
+  const empty = $("recent-empty");
+  if (!recent.length) {
+    ul.innerHTML = "";
+    empty.hidden = false;
+    return;
+  }
+  empty.hidden = true;
+  ul.innerHTML = recent
+    .map(
+      (c) => `
+      <li>
+        <a class="capsule-link" data-id="${escape(c.id)}" title="Open in library">
+          <strong>${escape(c.title)}</strong>
+          <span class="muted small block">${escape(preview(c.body))}</span>
+        </a>
+      </li>`,
+    )
+    .join("");
+  ul.addEventListener("click", (e) => {
+    const target = (e.target as HTMLElement).closest<HTMLElement>(".capsule-link");
+    if (target?.dataset.id) {
+      window.open(chrome.runtime.getURL(`library.html#capsule=${target.dataset.id}`), "_blank");
+    }
+  }, { once: true });
+}
+
+function preview(text: string): string {
+  return text.replace(/\s+/g, " ").slice(0, 80) + (text.length > 80 ? "…" : "");
+}
+
+function escape(s: string): string {
+  return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+}
+
+async function saveNew(): Promise<void> {
+  const title = ($("new-title") as HTMLInputElement).value.trim();
+  const body = ($("new-body") as HTMLTextAreaElement).value.trim();
+  if (!body) {
+    ($("new-body") as HTMLTextAreaElement).focus();
+    return;
+  }
+  const now = new Date().toISOString();
+  const capsule: Capsule = {
+    id: randomId("cap"),
+    title: title || body.split("\n")[0].slice(0, 60) || "Untitled capsule",
+    body,
+    summary: body.slice(0, 140).replace(/\s+/g, " ").trim(),
+    folderId: null,
+    tags: [],
+    useCount: 0,
+    createdAt: now,
+    updatedAt: now,
+  };
+  await chrome.runtime.sendMessage({ type: "UPSERT_CAPSULE", capsule });
+  ($("new-title") as HTMLInputElement).value = "";
+  ($("new-body") as HTMLTextAreaElement).value = "";
+  await refresh();
+}
+
 void init();

@@ -1,43 +1,33 @@
-import type { ContentRequest, ExtractResponse, DetectResponse } from "../shared/messages";
-import { detect, extract } from "./extractor";
-import { setDebug } from "../utils/log";
+import { boot, openPickerFromOutside } from "./overlay";
 
-// Guard against double-registration when the script is both declared in the
-// manifest and injected programmatically as a fallback.
 declare global {
-  interface Window {
-    __lcvContentLoaded?: boolean;
-  }
+  interface Window { __likkyContentLoaded?: boolean }
 }
 
-// The content script is intentionally passive: it never observes or transmits
-// anything on its own. It only responds to explicit requests from the
-// extension's own background/popup.
-if (!window.__lcvContentLoaded) {
-  window.__lcvContentLoaded = true;
-  chrome.runtime.onMessage.addListener(
-  (message: ContentRequest, _sender, sendResponse: (r: ExtractResponse | DetectResponse) => void) => {
-    if (message?.type === "DETECT_PLATFORM") {
-      sendResponse(detect(document, location.href));
-      return false; // synchronous
-    }
-    if (message?.type === "EXTRACT_CONVERSATION") {
-      setDebug(false);
-      extract(document, location.href, {
-        saveAttachments: message.saveAttachments,
-        maxAttachmentBytes: message.maxAttachmentBytes,
-      })
-        .then((result) => sendResponse(result))
-        .catch((err) =>
-          sendResponse({
-            success: false,
-            platform: "unknown",
-            reason: err instanceof Error ? err.message : "Extraction failed",
-          }),
-        );
-      return true; // async response
+if (!window.__likkyContentLoaded) {
+  window.__likkyContentLoaded = true;
+
+  // Boot after DOM is ready-ish. Sites often SPA-navigate, so also boot on
+  // subsequent history changes if the launcher gets removed.
+  const bootIfNeeded = () => {
+    if (!document.getElementById("likky-tounge-host")) void boot();
+  };
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bootIfNeeded, { once: true });
+  } else {
+    void boot();
+  }
+  // Re-attach the launcher after SPA navigations that wipe the DOM.
+  new MutationObserver(() => bootIfNeeded()).observe(document.documentElement, {
+    childList: true, subtree: false,
+  });
+
+  chrome.runtime.onMessage.addListener((msg, _s, sendResponse) => {
+    if (msg?.type === "OPEN_PICKER") {
+      openPickerFromOutside();
+      sendResponse({ ok: true });
+      return false;
     }
     return false;
-    },
-  );
+  });
 }

@@ -18,6 +18,7 @@ const entries = {
   background: "src/background/index.ts",
   popup: "src/popup/index.ts",
   library: "src/library/index.ts",
+  cook: "src/cook/index.ts",
   settings: "src/settings/index.ts",
 };
 
@@ -38,6 +39,7 @@ const common = {
   minify: prod,
   logLevel: "info",
   legalComments: "none",
+  loader: { ".css": "text" },
   define: { "process.env.NODE_ENV": JSON.stringify(prod ? "production" : "development") },
 };
 

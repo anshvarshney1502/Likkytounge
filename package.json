@@ -1,7 +1,7 @@
 {
   "name": "likky-tounge",
-  "version": "0.2.0",
-  "description": "Likky Tounge — privacy-first Chrome extension to save AI chat conversations locally with one click.",
+  "version": "0.3.0",
+  "description": "Likky Tounge — reusable context Capsules, injected into any AI chat with one click. Privacy-first, open source, 100% local.",
   "license": "MIT",
   "private": true,
   "type": "module",

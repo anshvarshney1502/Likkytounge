@@ -1,4 +1,4 @@
-import type { Settings } from "./messages";
+import type { Settings } from "./types";
 
 export function applyTheme(theme: Settings["theme"]): void {
   const root = document.documentElement;

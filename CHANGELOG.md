@@ -7,10 +7,28 @@ semantic versioning once it reaches 1.0.
 ## [Unreleased]
 
 ### Planned
-- Additional adapters: Copilot, Grok, DeepSeek, Qwen.
-- Optional automatic save (setting scaffolding already present, off by default).
-- Multi-select export in the library.
-- Snapshot history (keep multiple versions of the same conversation).
+- Per-Capsule versioning & rollback.
+- Team folders with color labels.
+- More Cook recipes (few-shot templates, tone/register presets).
+- Additional site adapters (Copilot, Grok, Qwen).
+
+## [0.3.0] — 2026-08-23
+
+### Changed — full product pivot
+- **New product direction:** Likky Tounge is now a Capsule Hub-style tool. It manages reusable **Capsules** of context and injects them into ChatGPT / Claude / Gemini / DeepSeek chat inputs with one click. The chat-save / archive functionality from 0.1–0.2 has been removed.
+
+### Added
+- **Floating on-page launcher + capsule picker** (Shadow-DOM overlay). Search Capsules, click to insert into the chat input, or drag & drop them onto the input.
+- **Keyboard shortcut** (`Alt+K` by default, customizable) to open the picker on any supported AI site.
+- **Right-click "Save selection as Capsule"** context menu — works on Gmail and every other page.
+- **Library page:** three-column manager (folders / capsule list / editor). Create, edit, delete, tag, move between folders, search, sort by recent/used/title.
+- **Popup:** quick-create a Capsule in seconds, see recent Capsules, jump to Library / Cook / Settings.
+- **Cook This Prompt** page — a fully local, rules-based prompt enhancer with 8 stackable recipes (RTCO structure, step-by-step, examples, output format, audience, no-fluff, self-critique, context inject). No LLM call, no API keys.
+- **JSON backup import / export** — portable vault backup that only merges new items (never overwrites your existing Capsules).
+- **Delete all data** button that clears IndexedDB.
+- New IndexedDB store: `likky-tounge` with `capsules` + `folders` object stores.
+- New tests for Cook recipes, IndexedDB CRUD + merge-import, and input insertion.
+
 
 ## [0.2.0] — 2026-08-22
 

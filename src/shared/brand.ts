@@ -1,7 +1,19 @@
-// Central branding constants. The visible name changed to "Likky Tounge" in
-// v0.2 while internal identifiers (storage db, adapter ids) keep their
-// original names for backwards compatibility with saved data.
 export const APP_NAME = "Likky Tounge";
-export const APP_TAGLINE = "Save any AI chat locally, in one click.";
-export const APP_VERSION = "0.2.0";
+export const APP_TAGLINE = "Capsules of context, ready in any AI chat.";
+export const APP_VERSION = "0.3.0";
 export const APP_REPO = "https://github.com/anshvarshney1502/Likkytounge";
+export const SUPPORTED_HOST_MATCHES = [
+  "https://chatgpt.com/*",
+  "https://chat.openai.com/*",
+  "https://claude.ai/*",
+  "https://gemini.google.com/*",
+  "https://chat.deepseek.com/*",
+  "https://mail.google.com/*",
+];
+export const SUPPORTED_HOSTS: Array<{ id: string; label: string; hostMatch: RegExp }> = [
+  { id: "chatgpt", label: "ChatGPT", hostMatch: /^(chatgpt|chat\.openai)\.com$/ },
+  { id: "claude", label: "Claude", hostMatch: /^claude\.ai$/ },
+  { id: "gemini", label: "Gemini", hostMatch: /^gemini\.google\.com$/ },
+  { id: "deepseek", label: "DeepSeek", hostMatch: /^chat\.deepseek\.com$/ },
+  { id: "gmail", label: "Gmail", hostMatch: /^mail\.google\.com$/ },
+];

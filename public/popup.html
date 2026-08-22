@@ -9,38 +9,41 @@
 <body>
   <main class="popup" role="main">
     <div class="brand">
-      <img src="./icons/icon48.png" alt="">
+      <img src="./icons/icon48.png" alt="" width="28" height="28">
       <div>
         <strong>Likky Tounge</strong>
-        <div class="tagline muted">Save any AI chat locally, in one click.</div>
+        <div class="tagline muted">Capsules of context — ready in any AI chat.</div>
       </div>
     </div>
 
-    <button id="save" class="btn btn-primary" aria-describedby="site-label">💾 Save Current Chat</button>
+    <section aria-label="Quick create">
+      <div class="field">
+        <label for="new-title" class="muted small">Quick create</label>
+        <input id="new-title" type="text" placeholder="Capsule title (e.g. 'React project background')">
+      </div>
+      <div class="field">
+        <textarea id="new-body" rows="3" placeholder="Paste or type the context you want to reuse…"></textarea>
+      </div>
+      <button id="new-save" class="btn btn-primary">＋ Save capsule</button>
+    </section>
 
-    <div class="sitebox">
+    <section aria-label="Recent capsules" class="section">
       <div class="row spread">
-        <span class="muted">Current site</span>
-        <span id="site-label" class="pill">Checking…</span>
+        <strong>Recent capsules</strong>
+        <span id="count" class="muted small">0</span>
       </div>
-      <div class="row spread" style="margin-top:6px;">
-        <span class="muted">Last saved</span>
-        <span id="last-saved" class="muted">—</span>
-      </div>
-    </div>
-
-    <section class="status" aria-live="polite">
-      <ul id="steps" class="steps" hidden></ul>
-      <div id="result" class="result" hidden></div>
+      <ul id="recent" class="recent"></ul>
+      <div id="recent-empty" class="muted small" hidden>No capsules yet. Save one above, or right-click any text on a page.</div>
     </section>
 
     <nav class="foot">
       <a id="open-library" class="btn" href="./library.html" target="_blank" rel="noopener">📚 Library</a>
+      <a id="open-cook" class="btn" href="./cook.html" target="_blank" rel="noopener">🧑‍🍳 Cook prompt</a>
       <a id="open-settings" class="btn" href="./settings.html" target="_blank" rel="noopener">⚙️ Settings</a>
     </nav>
 
-    <p class="footlink muted">
-      <a id="repo-link" href="https://github.com/anshvarshney1502/Likkytounge" target="_blank" rel="noopener">Open source · GitHub ↗</a>
+    <p class="footlink muted small">
+      <a href="https://github.com/anshvarshney1502/Likkytounge" target="_blank" rel="noopener">Open source · GitHub ↗</a>
     </p>
   </main>
   <script src="./popup.js"></script>

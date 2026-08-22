@@ -1,11 +1,11 @@
 {
   "manifest_version": 3,
   "name": "Likky Tounge",
-  "version": "0.2.0",
-  "description": "Save AI chat conversations locally with one click. Privacy-first: no account, no cloud, no telemetry.",
+  "version": "0.3.0",
+  "description": "Save reusable context Capsules and inject them into any AI chat with one click. Privacy-first, open source, 100% local.",
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Save current chat",
+    "default_title": "Open Likky Tounge",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",
@@ -16,16 +16,14 @@
   "background": {
     "service_worker": "background.js"
   },
-  "permissions": ["storage", "scripting", "activeTab", "clipboardWrite"],
+  "permissions": ["storage", "scripting", "activeTab", "contextMenus"],
   "host_permissions": [
     "https://chatgpt.com/*",
     "https://chat.openai.com/*",
-    "https://*.oaiusercontent.com/*",
-    "https://cdn.oaistatic.com/*",
     "https://claude.ai/*",
-    "https://*.anthropic.com/*",
     "https://gemini.google.com/*",
-    "https://*.googleusercontent.com/*"
+    "https://chat.deepseek.com/*",
+    "https://mail.google.com/*"
   ],
   "content_scripts": [
     {
@@ -33,7 +31,9 @@
         "https://chatgpt.com/*",
         "https://chat.openai.com/*",
         "https://claude.ai/*",
-        "https://gemini.google.com/*"
+        "https://gemini.google.com/*",
+        "https://chat.deepseek.com/*",
+        "https://mail.google.com/*"
       ],
       "js": ["content.js"],
       "run_at": "document_idle"

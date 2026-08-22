@@ -1,87 +1,59 @@
-// Core normalized data model. Every adapter produces these shapes so that
-// exports and storage are fully platform-independent.
+// Core data model for the Capsule Hub-style Likky Tounge.
 
 export const SCHEMA_VERSION = 1 as const;
 
-export type Role = "user" | "assistant" | "system" | "unknown";
-
-export type ContentBlock =
-  | { type: "text"; text: string }
-  | { type: "code"; language?: string; code: string }
-  | { type: "image"; url?: string; alt?: string; localPath?: string }
-  | { type: "link"; url: string; text?: string };
-
-export interface Attachment {
-  /** Stable-ish id within the conversation. */
+/** A reusable context snippet you can inject into any AI chat. */
+export interface Capsule {
   id: string;
-  filename: string;
-  mimeType?: string;
-  /** Size in bytes when known. */
-  size?: number;
-  /** Original source URL if the site exposed one. */
-  sourceUrl?: string;
-  /** True when the bytes were captured into the local archive. */
-  availableLocally: boolean;
-  /** Human-readable reason when not available locally. */
-  reason?: string;
-  /** Relative path inside the archive when stored locally. */
-  localPath?: string;
-  /** Populated only in-memory during capture; never persisted as-is here. */
-  bytesBase64?: string;
-}
-
-export interface ChatMessage {
-  id: string;
-  role: Role;
-  content: ContentBlock[];
-  /** ISO string when the platform exposes a timestamp. */
-  timestamp?: string;
-  attachments?: Attachment[];
-}
-
-export interface ConversationMetadata {
-  schemaVersion: typeof SCHEMA_VERSION;
-  /** Human platform label, e.g. "ChatGPT". */
-  platform: string;
-  /** Machine platform id, e.g. "chatgpt". */
-  platformId: string;
-  conversationTitle: string;
-  conversationUrl: string;
-  /** Stable id derived from the conversation URL/DOM when possible. */
-  conversationId: string;
-  savedAt: string;
-  messageCount: number;
-  /** True when captured via the generic fallback adapter. */
-  generic: boolean;
-  /** Non-fatal warnings surfaced to the user (never message contents). */
-  warnings: string[];
-}
-
-export interface Conversation {
-  metadata: ConversationMetadata;
-  messages: ChatMessage[];
-  attachments: Attachment[];
-}
-
-/** Result of an extraction attempt inside the content script. */
-export type ExtractionResult =
-  | { success: true; conversation: Conversation }
-  | { success: false; platform: string; reason: string };
-
-/** A stored record wrapping a conversation plus snapshot bookkeeping. */
-export interface StoredConversation {
-  /** Primary key: `${conversationId}` (latest snapshot pointer lives here). */
-  id: string;
-  conversationId: string;
-  snapshotId: string;
-  platform: string;
-  platformId: string;
   title: string;
-  url: string;
-  savedAt: string;
-  messageCount: number;
-  attachmentCount: number;
-  generic: boolean;
+  /** Plain-text body — this is what gets inserted into the chat input. */
+  body: string;
+  /** Optional short caption shown in lists (auto-derived if empty). */
+  summary: string;
+  folderId: string | null;
+  tags: string[];
+  /** Times this capsule was inserted into a chat. */
+  useCount: number;
+  createdAt: string;
+  updatedAt: string;
+  /** Origin URL if the capsule was captured from a page (context menu). */
+  sourceUrl?: string;
+}
+
+/** A grouping of capsules. */
+export interface Folder {
+  id: string;
+  name: string;
+  color?: string;
+  order: number;
+  createdAt: string;
+}
+
+export interface Settings {
+  theme: "system" | "light" | "dark";
+  /** Show the on-page launcher button on supported AI sites. */
+  showLauncher: boolean;
+  /** Keyboard shortcut to open the picker on the page. */
+  launcherHotkey: string; // e.g. "Alt+K"
+  /** Insert mode: replace input, or append at cursor. */
+  insertMode: "replace" | "append" | "prepend";
+  /** Auto-focus the search box when the picker opens. */
+  focusSearchOnOpen: boolean;
+}
+
+export const DEFAULT_SETTINGS: Settings = {
+  theme: "system",
+  showLauncher: true,
+  launcherHotkey: "Alt+K",
+  insertMode: "append",
+  focusSearchOnOpen: true,
+};
+
+/** Portable backup shape (JSON). */
+export interface Backup {
+  app: "likky-tounge";
   schemaVersion: number;
-  conversation: Conversation;
+  exportedAt: string;
+  capsules: Capsule[];
+  folders: Folder[];
 }
