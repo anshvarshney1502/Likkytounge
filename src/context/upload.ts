@@ -40,6 +40,7 @@ const ATTACH_TIMEOUT_MS = 60_000;
 export async function uploadContext(
   onProgress: (p: UploadProgress) => void,
   _insertMode: "replace" | "append" | "prepend" = "append",
+  contextId?: string,
 ): Promise<UploadResult> {
   const platform = detectPlatform(location.href);
   if (!platform) {
@@ -49,19 +50,31 @@ export async function uploadContext(
 
   let context: LatestContext | null;
   try {
-    const res = await chrome.runtime.sendMessage({ type: "GET_LATEST_CONTEXT" });
+    const res = await chrome.runtime.sendMessage(
+      contextId ? { type: "GET_CONTEXT", id: contextId } : { type: "GET_LATEST_CONTEXT" },
+    );
     if (res && typeof res === "object" && "error" in res) {
-      return { success: false, reason: String(res.error) || "Could not read the latest context." };
+      return { success: false, reason: String(res.error) || "Could not read that context." };
     }
-    context = res as LatestContext | null;
+    if (contextId) {
+      // GET_CONTEXT returns a SavedContext (title, not conversationTitle) —
+      // normalise it to the same shape GET_LATEST_CONTEXT returns.
+      const saved = res as (LatestContext & { title?: string }) | null;
+      context = saved ? { ...saved, conversationTitle: saved.title ?? saved.conversationTitle } : null;
+    } else {
+      context = res as LatestContext | null;
+    }
   } catch (e) {
-    return { success: false, reason: e instanceof Error ? e.message : "Could not read the latest context." };
+    return { success: false, reason: e instanceof Error ? e.message : "Could not read the context." };
   }
   if (context && (!context.markdown || typeof context.markdown !== "string")) {
     return { success: false, reason: "The stored context is invalid or corrupted. Generate a context again." };
   }
   if (!context) {
-    return { success: false, reason: "No generated context is available yet. Generate a context first." };
+    return {
+      success: false,
+      reason: contextId ? "That context could not be found." : "No generated context is available yet. Generate a context first.",
+    };
   }
 
   onProgress({ stage: "locate-input", label: "Locating chat input…" });

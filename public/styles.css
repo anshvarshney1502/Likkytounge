@@ -1,30 +1,33 @@
-/* Likky Tounge — premium editorial design system.
-   Wine Red (#7F021F) + Light Sand (#F6EAD0). Serif display type for
-   headlines, clean sans for UI chrome. No external fonts (offline-safe). */
+/* Context-Bolt — premium editorial design system.
+   Antique Gold (#8A9A5B) + Midnight Green (#1C271E). Serif display type
+   for headlines, clean sans for UI chrome. No external fonts (offline-safe,
+   never blocked by a host page's CSP). */
 
 :root {
-  --wine: #7F021F;
-  --wine-700: #67011a;
-  --wine-tint-08: rgba(127, 2, 31, 0.05);
-  --wine-tint-12: rgba(127, 2, 31, 0.09);
-  --wine-tint-20: rgba(127, 2, 31, 0.16);
+  --wine: #8A9A5B;
+  --wine-700: #121a15;
+  --wine-tint-08: rgba(138, 154, 91, 0.10);
+  --wine-tint-12: rgba(138, 154, 91, 0.16);
+  --wine-tint-20: rgba(138, 154, 91, 0.26);
 
-  --sand: #F6EAD0;
-  --sand-deep: #EEDCB0;
-  --cream: #FFFBF3;
+  --sand: #ECE7D6;
+  --sand-deep: #E0D9BF;
+  --cream: #FBF9F1;
 
-  --ink: #2B0A10;
-  --ink-soft: #6B4A4F;
-  --ink-faint: #A08488;
+  --ink: #1C271E;
+  --ink-soft: #46564A;
+  --ink-faint: #7C8B78;
 
   --surface: #ffffff;
   --surface-alt: var(--sand);
-  --border: rgba(127, 2, 31, 0.12);
-  --border-strong: rgba(127, 2, 31, 0.22);
+  --border: rgba(28, 39, 30, 0.12);
+  --border-strong: rgba(28, 39, 30, 0.24);
 
-  --accent-text: var(--wine);
-  --btn-bg: var(--wine);
-  --btn-fg: #FFFBF3;
+  --accent-text: #5C6B3C;
+  --btn-bg: var(--ink);
+  --btn-fg: #F2EFE2;
+  --btn-border: #8A9A5B;
+  --btn-bg-hover: #121a15;
 
   --ok: #2f6f4e;
   --err: #b23a2e;
@@ -35,11 +38,11 @@
   --radius-md: 8px;
   --radius-sm: 6px;
 
-  --shadow-sm: 0 1px 2px rgba(43, 10, 16, 0.06);
-  --shadow-md: 0 4px 14px rgba(43, 10, 16, 0.08);
-  --shadow-lg: 0 8px 28px rgba(43, 10, 16, 0.14);
+  --shadow-sm: 0 1px 2px rgba(28, 39, 30, 0.06);
+  --shadow-md: 0 4px 14px rgba(28, 39, 30, 0.08);
+  --shadow-lg: 0 8px 28px rgba(28, 39, 30, 0.14);
 
-  --font-display: ui-serif, Georgia, "Iowan Old Style", "Times New Roman", serif;
+  --font-display: Georgia, "Iowan Old Style", "Apple Garamond", Baskerville, "Times New Roman", "Droid Serif", Times, serif;
   --font-body: ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: ui-monospace, Menlo, Consolas, monospace;
 
@@ -59,45 +62,53 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --surface: #241014;
-    --surface-alt: #2b1418;
-    --cream: #1B0D10;
-    --ink: #F6EAD0;
-    --ink-soft: #D6B4A6;
-    --ink-faint: #96787a;
-    --border: rgba(246, 234, 208, 0.10);
-    --border-strong: rgba(246, 234, 208, 0.20);
-    --accent-text: #E98CA0;
-    --wine-tint-08: rgba(233, 140, 160, 0.08);
-    --wine-tint-12: rgba(233, 140, 160, 0.14);
-    --wine-tint-20: rgba(233, 140, 160, 0.24);
+    --surface: #22302A;
+    --surface-alt: #1A241F;
+    --cream: #141C17;
+    --ink: #F2EFE2;
+    --ink-soft: #C7D0BD;
+    --ink-faint: #8A9884;
+    --border: rgba(138, 154, 91, 0.18);
+    --border-strong: rgba(138, 154, 91, 0.30);
+    --accent-text: #A9B885;
+    --btn-bg: #8A9A5B;
+    --btn-fg: #141C17;
+    --btn-border: #141C17;
+    --btn-bg-hover: #768350;
+    --wine-tint-08: rgba(169, 184, 133, 0.10);
+    --wine-tint-12: rgba(169, 184, 133, 0.16);
+    --wine-tint-20: rgba(169, 184, 133, 0.26);
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
     --shadow-md: 0 10px 28px rgba(0, 0, 0, 0.4);
     --shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.55);
   }
 }
 :root[data-theme="dark"] {
-  --surface: #241014;
-  --surface-alt: #2b1418;
-  --cream: #1B0D10;
-  --ink: #F6EAD0;
-  --ink-soft: #D6B4A6;
-  --ink-faint: #96787a;
-  --border: rgba(246, 234, 208, 0.10);
-  --border-strong: rgba(246, 234, 208, 0.20);
-  --accent-text: #E98CA0;
-  --wine-tint-08: rgba(233, 140, 160, 0.08);
-  --wine-tint-12: rgba(233, 140, 160, 0.14);
-  --wine-tint-20: rgba(233, 140, 160, 0.24);
+  --surface: #22302A;
+  --surface-alt: #1A241F;
+  --cream: #141C17;
+  --ink: #F2EFE2;
+  --ink-soft: #C7D0BD;
+  --ink-faint: #8A9884;
+  --border: rgba(138, 154, 91, 0.18);
+  --border-strong: rgba(138, 154, 91, 0.30);
+  --accent-text: #A9B885;
+  --btn-bg: #8A9A5B;
+  --btn-fg: #141C17;
+  --btn-border: #141C17;
+  --btn-bg-hover: #768350;
+  --wine-tint-08: rgba(169, 184, 133, 0.10);
+  --wine-tint-12: rgba(169, 184, 133, 0.16);
+  --wine-tint-20: rgba(169, 184, 133, 0.26);
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 10px 28px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.55);
 }
 :root[data-theme="light"] {
-  --surface: #ffffff; --surface-alt: var(--sand); --cream: #FFFBF3;
-  --ink: #2B0A10; --ink-soft: #6B4A4F; --ink-faint: #A08488;
-  --border: rgba(127, 2, 31, 0.12); --border-strong: rgba(127, 2, 31, 0.22);
-  --accent-text: var(--wine);
+  --surface: #ffffff; --surface-alt: var(--sand); --cream: #FBF9F1;
+  --ink: #1C271E; --ink-soft: #46564A; --ink-faint: #7C8B78;
+  --border: rgba(28, 39, 30, 0.12); --border-strong: rgba(28, 39, 30, 0.24);
+  --accent-text: #5C6B3C; --btn-bg: var(--ink); --btn-fg: #F2EFE2; --btn-border: #8A9A5B; --btn-bg-hover: #121a15;
 }
 :root.reduce-motion, :root.reduce-motion * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
 
@@ -132,28 +143,28 @@ code, pre { font-family: var(--font-mono); }
 /* ---------------------------------------------------------- buttons --- */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  border: 1px solid var(--border); background: var(--surface); color: var(--ink);
-  padding: 8px 14px; border-radius: var(--radius-md); cursor: pointer;
+  border: 1px dashed var(--border-strong); background: var(--surface); color: var(--ink);
+  padding: 8px 14px; border-radius: 999px; cursor: pointer;
   font: 500 13px var(--font-body); transition: border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
 }
-.btn:hover { border-color: var(--border-strong); }
+.btn:hover { border-color: var(--wine); border-style: solid; background: var(--wine-tint-08); }
 .btn:active { transform: scale(0.97); }
 .btn:focus-visible { outline: 2px solid var(--wine); outline-offset: 2px; }
 .btn[disabled] { opacity: .5; cursor: not-allowed; }
-.btn-ghost { background: transparent; border-color: transparent; }
-.btn-ghost:hover { background: var(--wine-tint-08); }
+.btn-ghost { background: transparent; border-color: transparent; border-style: solid; }
+.btn-ghost:hover { background: var(--wine-tint-08); border-color: transparent; }
 .btn-primary {
   display: inline-flex; align-items: center; justify-content: center; gap: 10px;
-  background: var(--btn-bg); color: var(--btn-fg); border: 1px solid var(--btn-bg);
-  font-weight: 600; padding: 13px 20px; font-size: 14.5px; border-radius: var(--radius-lg);
+  background: var(--btn-bg); color: var(--btn-fg); border: 1.5px dashed var(--btn-border);
+  font-family: var(--font-display); font-weight: 700; padding: 13px 22px; font-size: 14.5px; border-radius: 999px;
   box-shadow: var(--shadow-sm); cursor: pointer;
-  transition: background var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+  transition: background var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease), border-style var(--dur-fast) var(--ease);
 }
 .btn-primary:active { transform: scale(0.98); }
-.btn-primary:hover { background: var(--wine-700); box-shadow: var(--shadow-md); }
+.btn-primary:hover { background: var(--btn-bg-hover); border-style: solid; box-shadow: var(--shadow-md); }
 .btn-primary.block { display: flex; width: 100%; }
-.btn-danger { color: var(--err); border-color: rgba(178,58,46,.35); background: transparent; }
-.btn-danger:hover { background: rgba(178,58,46,.08); }
+.btn-danger { color: var(--err); border-color: rgba(178,58,46,.4); background: transparent; }
+.btn-danger:hover { background: rgba(178,58,46,.08); border-color: rgba(178,58,46,.6); border-style: solid; }
 .btn-icon { width: 34px; height: 34px; padding: 0; border-radius: 50%; }
 
 .pill {
@@ -461,5 +472,5 @@ textarea { resize: vertical; }
   cursor: pointer; font-size: 16px; color: var(--ink);
 }
 .sidebar-backdrop {
-  display: none; position: fixed; inset: 0; background: rgba(43,10,16,.35); z-index: 39;
+  display: none; position: fixed; inset: 0; background: rgba(28,39,30,.4); z-index: 39;
 }

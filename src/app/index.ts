@@ -106,7 +106,13 @@ async function handleExport(id: string): Promise<void> {
 
 async function renderMain(route: Route): Promise<void> {
   if (route.view === "settings") {
-    await renderSettingsView(mainEl, () => (location.hash = "#/"));
+    await renderSettingsView(mainEl, () => (location.hash = "#/"), async () => {
+      await refreshMeta();
+      visibleCount = PAGE_SIZE;
+      bodyMatchIds = null;
+      searchEl.value = "";
+      renderSidebar(parseHash());
+    });
     return;
   }
   if (route.view === "about") {

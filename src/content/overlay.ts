@@ -6,6 +6,7 @@
 
 import type { Settings } from "../shared/types";
 import type { GenerateProgress, UploadProgress } from "../context/types";
+import type { SavedContextMeta } from "../context/store";
 import { generateContext } from "../context/generate";
 import { uploadContext } from "../context/upload";
 import { pikachuImgTag } from "./pikachu-icon";
@@ -17,6 +18,9 @@ const HOST_ID = "context-bolt-host";
 let root: ShadowRoot | null = null;
 let rootEl: HTMLElement | null = null;
 let menuEl: HTMLElement | null = null;
+let actionsEl: HTMLElement | null = null;
+let searchInputEl: HTMLInputElement | null = null;
+let resultsEl: HTMLElement | null = null;
 let panelEl: HTMLElement | null = null;
 let panelTitleEl: HTMLElement | null = null;
 let stepsEl: HTMLElement | null = null;
@@ -24,6 +28,17 @@ let resultEl: HTMLElement | null = null;
 let pikachuEl: HTMLElement | null = null;
 let stageEl: HTMLElement | null = null;
 let settingsCache: Settings | null = null;
+let contextListCache: SavedContextMeta[] | null = null;
+
+function fmtWhen(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const days = Math.floor((Date.now() - d.getTime()) / 86_400_000);
+  if (days <= 0) return "Today";
+  if (days === 1) return "Yesterday";
+  if (days < 7) return `${days}d ago`;
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
 
 async function getSettings(): Promise<Settings> {
   if (settingsCache) return settingsCache;
@@ -50,28 +65,49 @@ function mount(): void {
   rootEl = document.createElement("div");
   rootEl.className = "lk-root";
   rootEl.innerHTML = `
-    <div class="lk-menu" id="lk-menu" role="menu" aria-label="Likky Tounge actions">
-      <button type="button" data-action="generate" role="menuitem">
-        <span class="lk-emoji">⚡</span>
-        <span><strong>Generate Context</strong><span class="lk-menu-sub">Capture this entire conversation</span></span>
-      </button>
-      <button type="button" data-action="upload" role="menuitem">
-        <span class="lk-emoji">⬆️</span>
-        <span><strong>Upload Context</strong><span class="lk-menu-sub">Attach the latest context as a .md file</span></span>
-      </button>
-      <div class="lk-sep"></div>
-      <button type="button" data-action="copy" role="menuitem">
-        <span class="lk-emoji">📋</span>
-        <span><strong>Copy Context</strong><span class="lk-menu-sub">Copy the latest context to clipboard</span></span>
-      </button>
-      <button type="button" data-action="share" role="menuitem">
-        <span class="lk-emoji">📤</span>
-        <span><strong>Share Context</strong><span class="lk-menu-sub">Share the latest context</span></span>
-      </button>
-      <button type="button" data-action="library" role="menuitem">
-        <span class="lk-emoji">🗂️</span>
-        <span><strong>Open Library</strong><span class="lk-menu-sub">Browse every saved context</span></span>
-      </button>
+    <div class="lk-menu" id="lk-menu" role="menu" aria-label="Context-Bolt">
+      <div class="lk-menu-header">
+        <input type="search" id="lk-search" class="lk-search" placeholder="Search saved contexts…" autocomplete="off">
+      </div>
+      <div class="lk-results" id="lk-results" hidden></div>
+      <div class="lk-actions" id="lk-actions">
+        <button type="button" data-action="generate" role="menuitem" class="lk-menu-item">
+          <div class="lk-menu-item-icon">⚡</div>
+          <div class="lk-menu-item-text">
+            <div class="lk-menu-label">Generate Context</div>
+            <div class="lk-menu-sub">Capture this entire conversation</div>
+          </div>
+        </button>
+        <button type="button" data-action="upload" role="menuitem" class="lk-menu-item">
+          <div class="lk-menu-item-icon">↑</div>
+          <div class="lk-menu-item-text">
+            <div class="lk-menu-label">Upload Context</div>
+            <div class="lk-menu-sub">Attach latest as .md file</div>
+          </div>
+        </button>
+        <div class="lk-menu-divider"></div>
+        <button type="button" data-action="copy" role="menuitem" class="lk-menu-item">
+          <div class="lk-menu-item-icon">⎘</div>
+          <div class="lk-menu-item-text">
+            <div class="lk-menu-label">Copy Context</div>
+            <div class="lk-menu-sub">To clipboard</div>
+          </div>
+        </button>
+        <button type="button" data-action="share" role="menuitem" class="lk-menu-item">
+          <div class="lk-menu-item-icon">⤴</div>
+          <div class="lk-menu-item-text">
+            <div class="lk-menu-label">Share Context</div>
+            <div class="lk-menu-sub">With others</div>
+          </div>
+        </button>
+        <button type="button" data-action="library" role="menuitem" class="lk-menu-item">
+          <div class="lk-menu-item-icon">◧</div>
+          <div class="lk-menu-item-text">
+            <div class="lk-menu-label">Open Library</div>
+            <div class="lk-menu-sub">Browse all saved</div>
+          </div>
+        </button>
+      </div>
     </div>
     <div class="lk-panel" id="lk-panel" role="status" aria-live="polite">
       <button class="lk-panel-close" id="lk-panel-close" aria-label="Close">✕</button>
@@ -92,15 +128,18 @@ function mount(): void {
         <div class="lk-bolt">${BOLT_SVG}</div>
         <div class="lk-bolt">${BOLT_SVG}</div>
       </div>
-      <button class="lk-pikachu" id="lk-pikachu" aria-label="Open Likky Tounge menu" title="Generate or Upload context">
+      <button class="lk-pikachu" id="lk-pikachu" aria-label="Open Context-Bolt menu" title="Generate or Upload context">
         ${pikachuImgTag()}
       </button>
-      <button class="lk-plus" id="lk-plus" aria-label="Open Likky Tounge menu" title="Generate or Upload context">+</button>
+      <button class="lk-plus" id="lk-plus" aria-label="Open Context-Bolt menu" title="Generate or Upload context">+</button>
     </div>
   `;
   root.appendChild(rootEl);
 
   menuEl = root.getElementById("lk-menu");
+  actionsEl = root.getElementById("lk-actions");
+  searchInputEl = root.getElementById("lk-search") as HTMLInputElement;
+  resultsEl = root.getElementById("lk-results");
   panelEl = root.getElementById("lk-panel");
   panelTitleEl = root.getElementById("lk-panel-title");
   stepsEl = root.getElementById("lk-steps");
@@ -120,7 +159,7 @@ function mount(): void {
     toggleMenu();
   });
   root.getElementById("lk-panel-close")!.addEventListener("click", closePanel);
-  menuEl!.addEventListener("click", (e) => {
+  actionsEl!.addEventListener("click", (e) => {
     const btn = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-action]");
     if (!btn) return;
     closeMenu();
@@ -131,6 +170,14 @@ function mount(): void {
     else if (action === "share") void runShare();
     else if (action === "library") void chrome.runtime.sendMessage({ type: "OPEN_LIBRARY" });
   });
+  searchInputEl!.addEventListener("input", () => void onSearchInput());
+  searchInputEl!.addEventListener("click", (e) => e.stopPropagation());
+  resultsEl!.addEventListener("click", (e) => {
+    const row = (e.target as HTMLElement).closest<HTMLElement>("[data-upload-id]");
+    if (!row) return;
+    closeMenu();
+    void runUpload(row.dataset.uploadId);
+  });
 
   document.addEventListener("click", onOutsideClick, true);
   document.addEventListener("keydown", onGlobalKey, true);
@@ -140,7 +187,64 @@ function unmount(): void {
   document.getElementById(HOST_ID)?.remove();
   document.removeEventListener("click", onOutsideClick, true);
   document.removeEventListener("keydown", onGlobalKey, true);
-  root = rootEl = menuEl = panelEl = panelTitleEl = stepsEl = resultEl = pikachuEl = stageEl = null;
+  root = rootEl = menuEl = actionsEl = searchInputEl = resultsEl = panelEl = panelTitleEl = stepsEl = resultEl = pikachuEl = stageEl = null;
+  contextListCache = null;
+}
+
+/** Filters the cached context list against a query, newest first, capped for a dropdown. */
+function filterContexts(list: SavedContextMeta[], query: string): SavedContextMeta[] {
+  const q = query.trim().toLowerCase();
+  const matches = q
+    ? list.filter((c) => c.title.toLowerCase().includes(q) || c.platformLabel.toLowerCase().includes(q))
+    : list;
+  return [...matches]
+    .sort((a, b) => new Date(b.capturedAt).getTime() - new Date(a.capturedAt).getTime())
+    .slice(0, 8);
+}
+
+async function onSearchInput(): Promise<void> {
+  const query = searchInputEl!.value;
+  const hasQuery = query.trim().length > 0;
+
+  if (!hasQuery) {
+    resultsEl!.innerHTML = '';
+    resultsEl!.hidden = true;
+    actionsEl!.hidden = false;
+    return;
+  }
+
+  actionsEl!.hidden = true;
+  resultsEl!.hidden = false;
+
+  if (!contextListCache) {
+    resultsEl!.innerHTML = `<div class="lk-results-empty">Loading…</div>`;
+    try {
+      const res = await chrome.runtime.sendMessage({ type: "LIST_CONTEXTS" });
+      contextListCache = Array.isArray(res) ? (res as SavedContextMeta[]) : [];
+    } catch {
+      contextListCache = [];
+    }
+    // The query may have changed (or the menu closed) while that awaited.
+    if (searchInputEl!.value !== query || resultsEl!.hidden) return;
+  }
+
+  const matches = filterContexts(contextListCache, query);
+  if (matches.length === 0) {
+    resultsEl!.innerHTML = `<div class="lk-results-empty">No saved contexts match “${esc(query)}”.</div>`;
+    return;
+  }
+  resultsEl!.innerHTML = matches
+    .map(
+      (c) => `
+      <button type="button" class="lk-result-row" data-upload-id="${esc(c.id)}" title="Upload “${esc(c.title)}”">
+        <span class="lk-result-main">
+          <strong>${esc(c.title)}</strong>
+          <span class="lk-result-sub">${esc(c.platformLabel)} · ${esc(fmtWhen(c.capturedAt))}</span>
+        </span>
+        <span class="lk-result-upload" aria-hidden="true">↑</span>
+      </button>`,
+    )
+    .join("");
 }
 
 function onOutsideClick(): void {
@@ -183,6 +287,9 @@ function openMenu(): void {
 }
 function closeMenu(): void {
   menuEl?.classList.remove("open");
+  if (searchInputEl) searchInputEl.value = "";
+  if (resultsEl) resultsEl.hidden = true;
+  if (actionsEl) actionsEl.hidden = false;
 }
 function openPanel(): void {
   closeMenu();
@@ -287,7 +394,7 @@ async function runGenerate(): Promise<void> {
   }
 }
 
-async function runUpload(): Promise<void> {
+async function runUpload(contextId?: string): Promise<void> {
   openPanel();
   panelTitleEl!.textContent = "⬆️ Uploading context…";
   resultEl!.hidden = true;
@@ -303,7 +410,7 @@ async function runUpload(): Promise<void> {
         ? `${p.label} ${Math.round(p.elapsedMs / 1000)}s`
         : p.label;
     renderSteps(UPLOAD_STAGES, p.stage, label);
-  }, settings.insertMode);
+  }, settings.insertMode, contextId);
 
   if (result.success) {
     markAllDone(UPLOAD_STAGES);

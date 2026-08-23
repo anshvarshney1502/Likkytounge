@@ -1,9 +1,8 @@
 import type { Settings } from "../shared/types";
 import { getSettings, setSettings } from "../shared/settings-store";
-import { estimateContextStorage, listContexts, clearAllContexts, clearOldContexts } from "../context/store";
+import { listContexts, clearAllContexts, clearOldContexts } from "../context/store";
 import { db as capsuleDb } from "../storage/db";
 import { applyTheme, applyDensity, applyReduceMotion } from "../shared/theme";
-import { fmtBytes } from "./util";
 import { showToast } from "./toast";
 import { APP_VERSION, APP_REPO } from "../shared/brand";
 
@@ -19,13 +18,13 @@ function wireSwitch(root: HTMLElement, id: string, onChange: (v: boolean) => voi
   });
 }
 
-export async function renderSettingsView(main: HTMLElement, onBack: () => void): Promise<void> {
+export async function renderSettingsView(
+  main: HTMLElement,
+  onBack: () => void,
+  onDataChanged: () => Promise<void> | void = () => {},
+): Promise<void> {
   const settings = await getSettings();
-  const [ctxStats, ctxList, capsules] = await Promise.all([
-    estimateContextStorage(),
-    listContexts(),
-    capsuleDb.listCapsules().catch(() => []),
-  ]);
+  const ctxList = await listContexts();
 
   main.innerHTML = `
     <div class="app-page">
@@ -131,15 +130,8 @@ export async function renderSettingsView(main: HTMLElement, onBack: () => void):
         </section>
 
         <section class="settings-section">
-          <h2>Storage</h2>
-          <div class="settings-card">
-            <div class="settings-row">
-              <div class="stat-row"><span class="k">Saved contexts</span><span class="v">${ctxStats.count}</span></div>
-              <div class="stat-row"><span class="k">Storage used</span><span class="v">${fmtBytes(ctxStats.usage)}${ctxStats.quota ? ` of ~${fmtBytes(ctxStats.quota)}` : ""}</span></div>
-              ${capsules.length ? `<div class="stat-row"><span class="k">Legacy capsules (earlier version)</span><span class="v">${capsules.length}</span></div>` : ""}
-            </div>
-          </div>
-          <div class="settings-card danger-zone" style="margin-top:12px;">
+          <h2>Data</h2>
+          <div class="settings-card danger-zone">
             <div class="settings-row row wrap gap-2">
               <button class="btn" id="clear-old">Clear contexts older than 30 days</button>
               <button class="btn btn-danger" id="clear-all">Delete all local data</button>
@@ -204,6 +196,7 @@ export async function renderSettingsView(main: HTMLElement, onBack: () => void):
   main.querySelector("#clear-old")!.addEventListener("click", async () => {
     const deleted = await clearOldContexts(30);
     showToast(deleted > 0 ? `Cleared ${deleted} context(s) older than 30 days.` : "Nothing older than 30 days to clear.");
+    if (deleted > 0) await onDataChanged();
   });
   main.querySelector("#clear-all")!.addEventListener("click", async () => {
     if (!confirm(`Delete ALL ${ctxList.length} saved context(s) and any legacy data? This cannot be undone.`)) return;
@@ -213,6 +206,11 @@ export async function renderSettingsView(main: HTMLElement, onBack: () => void):
     } catch {
       /* legacy store may not exist */
     }
+    // The sidebar's context list is cached in app/index.ts module state and
+    // is not refetched on a plain hash navigation — without this, the
+    // library kept showing the just-deleted contexts until a manual
+    // reload, which read as "delete all" silently not working.
+    await onDataChanged();
     showToast("All local data deleted.");
     location.hash = "#/";
   });

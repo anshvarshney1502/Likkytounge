@@ -59,60 +59,57 @@ function filesPresent(doc: Document): boolean {
 }
 
 /**
- * Picks the container to watch for an attachment chip.
- *
- * A single `composer.parentElement` is too narrow on sites (Claude among
- * them) that render the attachment preview row as a sibling a few levels
- * further up, not as a direct sibling of the editable itself — which was
- * why a real, successful attachment could still time out. Watching all the
- * way up at `document.body` fixes that but starts picking up unrelated
- * churn from the message stream. Walking up a fixed handful of ancestors
- * splits the difference: enough room for a composer's toolbar/preview
- * wrapper, not enough to reach the conversation history.
- */
-function findObserveRoot(composer: HTMLElement | null): Element {
-  const form = composer?.closest("form");
-  if (form) return form;
-  let node: Element | null = composer?.parentElement ?? null;
-  let root: Element = node ?? document.body;
-  for (let i = 0; i < 4 && node; i++) {
-    root = node;
-    node = node.parentElement;
-  }
-  return root;
-}
-
-/**
  * Watches for an attachment chip appearing near the composer.
  *
  * Matching on the file's *content* (or its name, which is derived from the
  * conversation title) is not usable here: the page already displays that
  * same conversation title in its header and sidebar, so a text search would
- * report success before anything was ever attached. Watching for newly
- * inserted elements near the composer is content-agnostic and scoped
- * tightly enough to ignore unrelated page churn such as the message
- * stream, which lives outside that region.
+ * report success before anything was ever attached.
+ *
+ * An earlier version scoped the observed container by walking up a fixed
+ * number of DOM ancestors from the composer. That is exactly the kind of
+ * assumption that breaks per-site: too narrow missed real, successful
+ * attachments on both Claude and Gemini (their preview chip lives outside
+ * that ancestor chain), leaving the panel stuck on its timer forever
+ * despite the attachment having visibly succeeded. DOM structure is not a
+ * reliable signal here; on-screen position is — an attachment preview
+ * always renders visually adjacent to the composer regardless of which
+ * container happens to hold it. So this now observes the whole document
+ * and accepts an added node as confirmation only if it lands within a
+ * viewport-relative distance of the composer, which cheaply excludes
+ * unrelated churn (the message stream, typically far above).
  *
  * Additions *inside* the editable itself are deliberately not counted — text
  * landing in the message box is precisely the outcome we are avoiding.
  */
 function watchForAttachment(composer: HTMLElement | null): { saw: () => boolean; reset: () => void; stop: () => void } {
   const host = document.getElementById("context-bolt-host");
-  const container = findObserveRoot(composer);
+  const NEARBY_PX = 700;
 
   let seen = false;
   const obs = new MutationObserver((records) => {
+    if (seen) return;
     for (const r of records) {
-      r.addedNodes.forEach((n) => {
-        if (n.nodeType !== 1) return;
+      for (const n of Array.from(r.addedNodes)) {
+        if (n.nodeType !== 1) continue;
         const el = n as Element;
-        if (host && host.contains(el)) return;
-        if (composer && composer.contains(el)) return;
-        seen = true;
-      });
+        if (host && host.contains(el)) continue;
+        if (composer && composer.contains(el)) continue;
+        if (!composer) {
+          seen = true;
+          break;
+        }
+        const a = composer.getBoundingClientRect();
+        const b = el.getBoundingClientRect();
+        if (Math.abs(b.top - a.top) < NEARBY_PX || Math.abs(b.bottom - a.bottom) < NEARBY_PX) {
+          seen = true;
+          break;
+        }
+      }
+      if (seen) break;
     }
   });
-  obs.observe(container, { childList: true, subtree: true });
+  obs.observe(document.body, { childList: true, subtree: true });
 
   return {
     saw: () => seen,
