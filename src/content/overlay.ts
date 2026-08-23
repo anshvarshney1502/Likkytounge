@@ -239,9 +239,13 @@ async function onSearchInput(): Promise<void> {
 }
 
 function onOutsideClick(e: Event): void {
-  // Check if click is inside the shadow root using composedPath
-  const path = e.composedPath?.() || [];
-  if (path.includes(rootEl!)) return; // Click is inside shadow DOM
+  // composedPath() includes shadow-DOM internals even for document-level
+  // capture listeners. We check the shadow *host* element — it's always in the
+  // path for any click that originates inside our shadow root.
+  const host = document.getElementById(HOST_ID);
+  if (!host) return;
+  const path = e.composedPath?.() ?? [];
+  if (path.includes(host)) return;
   closeMenu();
 }
 function onGlobalKey(e: KeyboardEvent): void {
