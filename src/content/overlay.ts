@@ -72,25 +72,25 @@ function mount(): void {
       <div class="lk-results" id="lk-results" hidden></div>
       <div class="lk-actions" id="lk-actions">
         <button type="button" data-action="generate" role="menuitem" class="lk-menu-item">
-          <svg class="lk-menu-item-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-          <div class="lk-menu-label">Generate Context</div>
+          <svg class="lk-menu-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          <span class="lk-menu-label">Generate Context</span>
         </button>
         <button type="button" data-action="upload" role="menuitem" class="lk-menu-item">
-          <svg class="lk-menu-item-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" transform="rotate(90 12 12)"/><rect x="2" y="16" width="20" height="2" rx="1"/></svg>
-          <div class="lk-menu-label">Upload Context</div>
+          <svg class="lk-menu-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <span class="lk-menu-label">Upload Context</span>
         </button>
         <div class="lk-menu-divider"></div>
         <button type="button" data-action="copy" role="menuitem" class="lk-menu-item">
-          <svg class="lk-menu-item-icon" viewBox="0 0 24 24" fill="currentColor"><rect x="9" y="9" width="13" height="13" rx="1"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>
-          <div class="lk-menu-label">Copy Context</div>
+          <svg class="lk-menu-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          <span class="lk-menu-label">Copy Context</span>
         </button>
         <button type="button" data-action="share" role="menuitem" class="lk-menu-item">
-          <svg class="lk-menu-item-icon" viewBox="0 0 24 24" fill="currentColor"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51a6 6 0 0 0 6.82 0M15.41 6.49a6 6 0 0 0-6.82 0" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-          <div class="lk-menu-label">Share Context</div>
+          <svg class="lk-menu-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          <span class="lk-menu-label">Share Context</span>
         </button>
         <button type="button" data-action="library" role="menuitem" class="lk-menu-item">
-          <svg class="lk-menu-item-icon" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>
-          <div class="lk-menu-label">Open Library</div>
+          <svg class="lk-menu-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+          <span class="lk-menu-label">Open Library</span>
         </button>
       </div>
     </div>
@@ -229,10 +229,10 @@ async function onSearchInput(): Promise<void> {
     const title = esc(c.title);
     const platform = esc(c.platformLabel);
     const when = esc(fmtWhen(c.capturedAt));
-    const svg = '<svg class=”lk-result-upload” aria-hidden=”true” viewBox=”0 0 24 24” fill=”none” stroke=”currentColor”><polyline points=”9 18 15 12 9 6”></polyline></svg>';
+    const svg = '<div class=”lk-result-upload” aria-hidden=”true”><svg width=”14” height=”14” viewBox=”0 0 24 24” fill=”none” stroke=”currentColor” stroke-width=”2.5” stroke-linecap=”round” stroke-linejoin=”round”><path d=”M12 19V5M5 12l7-7 7 7”/></svg></div>';
     const html = '<button type=”button” class=”lk-result-row” data-upload-id=”' + id + '” title=”Upload: ' + title + '”>' +
-      '<span class=”lk-result-main”><strong>' + title + '</strong>' +
-      '<span class=”lk-result-sub”>' + platform + ' · ' + when + '</span></span>' + svg + '</button>';
+      '<div class=”lk-result-main”><div class=”lk-result-title”>' + title + '</div>' +
+      '<div class=”lk-result-sub”>' + platform + ' · ' + when + '</div></div>' + svg + '</button>';
     parts.push(html);
   }
   resultsEl!.innerHTML = parts.join('');
