@@ -39,8 +39,19 @@ export type GenerateResult =
 export interface UploadProgress {
   stage: "detect" | "locate-input" | "transfer" | "done";
   label: string;
+  /** Milliseconds spent on the current stage, so the UI can show a live timer. */
+  elapsedMs?: number;
 }
 
 export type UploadResult =
-  | { success: true; platformLabel: string; chunks: number; partial?: boolean; partialReason?: string }
+  | {
+      success: true;
+      platformLabel: string;
+      chunks: number;
+      partial?: boolean;
+      partialReason?: string;
+      /** True when the context was delivered as a .md attachment (the normal path). */
+      attachedAsFile?: boolean;
+      elapsedMs?: number;
+    }
   | { success: false; reason: string };

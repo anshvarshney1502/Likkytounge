@@ -1,17 +1,22 @@
 // Runs inside the content script. Retrieves the latest generated context
-// from the background (shared, cross-site storage) and transfers it into
-// whichever supported LLM's chat input is present on the current page.
-// Never shows a fake "success" — insertion is verified after the fact.
+// from the background (shared, cross-site storage) and attaches it to the
+// current LLM's composer as a .md file.
+//
+// Deliberately does NOT type the context into the message box. Writing a
+// large context through a rich-text editor's typing path blocks the main
+// thread (that is what made pages unresponsive for tens of seconds), and a
+// wall of raw markdown in the input is not what the user wants anyway —
+// they want a file on the prompt. Attaching hands the payload to the site's
+// own uploader in one instantaneous operation, so our code never blocks the
+// page no matter how large the context is.
 
 import type { LatestContext, UploadResult, UploadProgress } from "./types";
 import { detectPlatform } from "./extract/platforms";
-import { insertLargeText, getInputLength } from "../content/insert";
+import { attachContextAsFile } from "../content/attach";
 
 /**
- * Kept exported for tests and for callers that want to pre-split a payload.
- * The upload path itself no longer chunks up front — `insertLargeText`
- * sends the whole payload through the editor's bulk paste path in one go
- * and only falls back to (small, yielded) chunks if that is refused.
+ * Retained for callers that want to pre-split a payload; the upload path no
+ * longer chunks anything, since the whole context is handed over as a file.
  */
 export function splitIntoChunks(text: string, maxChars: number): string[] {
   if (text.length <= maxChars) return [text];
@@ -29,9 +34,12 @@ export function splitIntoChunks(text: string, maxChars: number): string[] {
   return chunks;
 }
 
+/** How long to keep waiting for the destination site to accept the file. */
+const ATTACH_TIMEOUT_MS = 60_000;
+
 export async function uploadContext(
   onProgress: (p: UploadProgress) => void,
-  insertMode: "replace" | "append" | "prepend" = "append",
+  _insertMode: "replace" | "append" | "prepend" = "append",
 ): Promise<UploadResult> {
   const platform = detectPlatform(location.href);
   if (!platform) {
@@ -57,55 +65,36 @@ export async function uploadContext(
   }
 
   onProgress({ stage: "locate-input", label: "Locating chat input…" });
-  const input = platform.findInput(document);
-  if (!input) {
-    return { success: false, reason: `Could not find a compatible input on ${platform.label}. The page layout may have changed.` };
-  }
+  const composer = platform.findInput(document);
 
-  onProgress({ stage: "transfer", label: "Transferring context…" });
-  const baseline = getInputLength(input);
-
-  const result = await insertLargeText(input, context.markdown, {
-    mode: insertMode,
-    budgetMs: 15_000,
-    onProgress: (done, total) => {
-      if (total > 1) {
-        onProgress({ stage: "transfer", label: `Transferring context… (${done}/${total})` });
-      }
+  onProgress({ stage: "transfer", label: "Attaching context file…", elapsedMs: 0 });
+  const result = await attachContextAsFile(
+    context.markdown,
+    context.conversationTitle,
+    composer,
+    {
+      timeoutMs: ATTACH_TIMEOUT_MS,
+      onTick: (elapsedMs) => {
+        onProgress({ stage: "transfer", label: "Attaching context file…", elapsedMs });
+      },
     },
-  });
+  );
 
   if (!result.ok) {
-    return { success: false, reason: result.abortedReason ?? "The destination editor rejected the automatic transfer." };
-  }
-
-  // Verify: did the input actually grow by roughly the expected amount?
-  const after = getInputLength(input);
-  const expectedDelta = context.markdown.length;
-  const actualDelta = insertMode === "replace" ? after : after - baseline;
-  const ratio = expectedDelta > 0 ? actualDelta / expectedDelta : 1;
-
-  onProgress({ stage: "done", label: "Context transferred" });
-
-  if (result.abortedReason) {
     return {
-      success: true,
-      platformLabel: platform.label,
-      chunks: result.operations,
-      partial: true,
-      partialReason: result.abortedReason,
+      success: false,
+      reason:
+        `${result.reason ?? "The attachment could not be completed."} ` +
+        `Use Copy Context and paste it manually, or open the Library to export the file.`,
     };
   }
 
-  if (ratio < 0.85) {
-    return {
-      success: true,
-      platformLabel: platform.label,
-      chunks: result.operations,
-      partial: true,
-      partialReason: `Only part of the context appears to have been inserted (~${Math.round(ratio * 100)}%). ${platform.label}'s input may have a size limit.`,
-    };
-  }
-
-  return { success: true, platformLabel: platform.label, chunks: result.operations };
+  onProgress({ stage: "done", label: "Context attached" });
+  return {
+    success: true,
+    platformLabel: platform.label,
+    chunks: 1,
+    attachedAsFile: true,
+    elapsedMs: result.elapsedMs,
+  };
 }

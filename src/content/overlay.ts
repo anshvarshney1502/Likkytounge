@@ -57,7 +57,7 @@ function mount(): void {
       </button>
       <button type="button" data-action="upload" role="menuitem">
         <span class="lk-emoji">⬆️</span>
-        <span><strong>Upload Context</strong><span class="lk-menu-sub">Send the latest context here</span></span>
+        <span><strong>Upload Context</strong><span class="lk-menu-sub">Attach the latest context as a .md file</span></span>
       </button>
       <div class="lk-sep"></div>
       <button type="button" data-action="copy" role="menuitem">
@@ -224,7 +224,7 @@ const GENERATE_STAGES: Array<{ key: GenerateProgress["stage"]; label: string }> 
 const UPLOAD_STAGES: Array<{ key: UploadProgress["stage"]; label: string }> = [
   { key: "detect", label: "Detect platform" },
   { key: "locate-input", label: "Locate chat input" },
-  { key: "transfer", label: "Transfer context" },
+  { key: "transfer", label: "Attach context file" },
 ];
 
 function renderSteps(stages: Array<{ key: string; label: string }>, activeKey: string, liveLabel?: string): void {
@@ -296,7 +296,13 @@ async function runUpload(): Promise<void> {
 
   const settings = await getSettings();
   const result = await uploadContext((p) => {
-    renderSteps(UPLOAD_STAGES, p.stage, p.label);
+    // Show a live elapsed-seconds counter on the transfer step so a slow
+    // upload reads as "still working", not as a stalled UI.
+    const label =
+      p.elapsedMs && p.elapsedMs >= 1000
+        ? `${p.label} ${Math.round(p.elapsedMs / 1000)}s`
+        : p.label;
+    renderSteps(UPLOAD_STAGES, p.stage, label);
   }, settings.insertMode);
 
   if (result.success) {
@@ -307,11 +313,13 @@ async function runUpload(): Promise<void> {
         `<strong>⚠ Partially transferred.</strong><br>${esc(result.partialReason ?? "")}`,
       );
     } else {
+      const secs = result.elapsedMs ? ` in ${Math.max(1, Math.round(result.elapsedMs / 1000))}s` : "";
       showResult(
         "ok",
-        `<strong>✓ Context transferred to ${esc(result.platformLabel)}.</strong>${result.chunks > 1 ? ` (${result.chunks} parts)` : ""}`,
+        `<strong>✓ Context attached to ${esc(result.platformLabel)}${esc(secs)}.</strong><br>` +
+          `It's on the prompt as a Markdown file — just add your question and send.`,
       );
-      setTimeout(closePanel, 4000);
+      setTimeout(closePanel, 5000);
     }
   } else {
     showResult("err", `<strong>✕ Upload failed.</strong><br>${esc(result.reason)}`);

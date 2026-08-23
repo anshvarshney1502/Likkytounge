@@ -12,6 +12,59 @@ semantic versioning once it reaches 1.0.
 - Per-context version history (currently only the single "latest" pointer is tracked; every generation is kept, but not edited-in-place history of the same context).
 - Real text extraction from generated file attachments (PDF/PPT/DOCX) — currently out of scope to keep the extension dependency-free; only filenames/links and any artifact-panel text already visible in the page are captured.
 
+## [0.5.4] — 2026-08-23
+
+### Fixed — Upload Context froze the page *and* dumped raw markdown into the chat box
+A user screenshot showed the actual failure precisely: ChatGPT **had**
+accepted the pasted context and rendered it as an attachment card
+("# Pikachu Context Ca.."), while the raw markdown — `<!-- lk-turn:user -->`
+markers and all — was *also* being typed into the message box, taking 36
+seconds and ending in "Partially transferred".
+
+The cause was 0.5.3's success check. It confirmed a paste by measuring
+whether the composer's **text** grew. When a site converts a large paste
+into a *file attachment* the text box does not grow at all, so the check
+reported failure and the code fell through to the slow chunked
+`insertText` path — producing both the freeze and the wall of markdown.
+
+Upload Context now attaches the context as a real `.md` file and never
+types into the message box:
+- Three delivery strategies, tried in order: the site's own
+  `input[type="file"]`, a synthetic `paste` carrying the File, and a
+  simulated drag-and-drop. All are instantaneous from our side — we hand
+  the browser a File and the site's uploader takes over, so our code cannot
+  block the page regardless of context size.
+- The chunked-typing fallback is gone from this path entirely. If every
+  attachment strategy fails, it now says so and points at Copy Context /
+  the Library rather than degrading into a page-freezing type-out.
+
+### Fixed — attachment detection was unsound
+The first attempt at detecting success matched the file's content preview
+or filename against page text. That is unusable here: the filename is
+derived from the conversation title, which the page *already* displays in
+its header and sidebar, so it would report success before anything was
+attached. Detection now uses two content-agnostic signals — a file input
+actually holding a file, and a `MutationObserver` scoped to the composer's
+own `<form>`. Nodes added inside the editable itself are explicitly not
+counted, since text landing in the message box is the outcome being
+avoided.
+
+### Added — live timer
+The transfer step now shows elapsed seconds ("Attach context file… 12s") and
+the success message reports how long it took, so a slow upload reads as
+progress rather than a stalled UI. The attachment wait runs up to 60s.
+
+### Notes
+- 8 new tests cover the attach path, including a regression test built
+  around the exact reported failure (a site that shows a truncated content
+  preview instead of the filename) and an explicit assertion that the
+  context is never written into the composer's text box.
+- Test setup gained `DataTransfer.items.add`/`.files`, `DragEvent`, and a
+  permissive `HTMLInputElement.files` setter. jsdom implements none of
+  these — and its own `files` setter rejects anything that is not a real
+  `FileList`, which jsdom offers no way to construct — so without them the
+  attachment path cannot be exercised under test at all.
+
 ## [0.5.3] — 2026-08-23
 
 ### Fixed — Upload Context freezing the page (real root cause this time)

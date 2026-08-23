@@ -6,13 +6,24 @@ import { Blob as NodeBlob } from "node:buffer";
 // @ts-expect-error override jsdom's partial Blob
 globalThis.Blob = NodeBlob;
 
-// jsdom implements neither DataTransfer nor ClipboardEvent, so the synthetic
-// paste path in src/content/insert.ts cannot be exercised without these.
-// Real Chrome provides both; these are minimal stand-ins covering only the
-// surface that path actually uses (setData/getData + event.clipboardData).
+// jsdom implements none of DataTransfer / ClipboardEvent / DragEvent, so
+// neither the synthetic paste path (src/content/insert.ts) nor the file
+// attachment path (src/content/attach.ts) can be exercised without them.
+// Real Chrome provides all three; these are minimal stand-ins covering only
+// the surface those paths use: setData/getData, items.add + files, and the
+// event objects that carry them.
 if (typeof (globalThis as { DataTransfer?: unknown }).DataTransfer === "undefined") {
   class FakeDataTransfer {
     private data = new Map<string, string>();
+    private fileList: File[] = [];
+    readonly items = {
+      add: (file: File) => {
+        this.fileList.push(file);
+      },
+    };
+    get files(): File[] {
+      return this.fileList;
+    }
     setData(type: string, value: string): void {
       this.data.set(type, value);
     }
@@ -30,6 +41,36 @@ if (typeof (globalThis as { DataTransfer?: unknown }).DataTransfer === "undefine
     }
   }
   (globalThis as { ClipboardEvent?: unknown }).ClipboardEvent = FakeClipboardEvent;
+
+  class FakeDragEvent extends Event {
+    dataTransfer: FakeDataTransfer | null;
+    constructor(type: string, init?: EventInit & { dataTransfer?: FakeDataTransfer }) {
+      super(type, init);
+      this.dataTransfer = init?.dataTransfer ?? null;
+    }
+  }
+  (globalThis as { DragEvent?: unknown }).DragEvent = FakeDragEvent;
+}
+
+// jsdom does define an HTMLInputElement.files setter, but it rejects
+// anything that is not a genuine FileList — and jsdom provides no way to
+// construct one. Chrome accepts `input.files = dataTransfer.files`, which is
+// how a file is handed to a site's uploader, so the accessor is replaced
+// outright here with a permissive one.
+{
+  const proto = globalThis.HTMLInputElement?.prototype;
+  if (proto) {
+    const store = new WeakMap<HTMLInputElement, File[] | null>();
+    Object.defineProperty(proto, "files", {
+      configurable: true,
+      get(this: HTMLInputElement) {
+        return store.get(this) ?? null;
+      },
+      set(this: HTMLInputElement, v: File[] | null) {
+        store.set(this, v);
+      },
+    });
+  }
 }
 
 // Minimal chrome.storage.local mock so background-side code (settings-store,
