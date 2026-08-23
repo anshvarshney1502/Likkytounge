@@ -36,6 +36,7 @@ let searchSeq = 0;
 const POS_KEY = "lk-pikachu-pos";
 let dragMoved = false;
 let pikachuWrapEl: HTMLElement | null = null;
+let currentScale = 1;
 
 function loadPos(): { x: number; y: number } | null {
   try {
@@ -49,8 +50,8 @@ function savePos(x: number, y: number): void {
 }
 
 function getPikaSize(): { w: number; h: number } {
-  if (pikachuWrapEl) return { w: pikachuWrapEl.offsetWidth, h: pikachuWrapEl.offsetHeight };
-  return { w: 132, h: 82 };
+  const baseW = 132, baseH = 82;
+  return { w: Math.round(baseW * currentScale), h: Math.round(baseH * currentScale) };
 }
 
 function applyPos(x: number, y: number): void {
@@ -64,17 +65,41 @@ function applyPos(x: number, y: number): void {
   rootEl.style.top    = cy + "px";
   rootEl.style.right  = "auto";
   rootEl.style.bottom = "auto";
-  updatePanelAlignment(cx, cy);
 }
 
-function updatePanelAlignment(cx: number, cy: number): void {
-  if (!rootEl) return;
+function positionPopup(popup: HTMLElement | null): void {
+  if (!popup || !rootEl) return;
   const W = window.innerWidth;
   const H = window.innerHeight;
-  const openBelow = cy < H / 2;
-  const alignLeft = cx > W / 2;
-  rootEl.classList.toggle("lk-root--below", openBelow);
-  rootEl.classList.toggle("lk-root--left", alignLeft);
+  const { w, h } = getPikaSize();
+  const rootR = rootEl.getBoundingClientRect();
+  const px = rootR.left;
+  const py = rootR.top;
+
+  popup.style.position = "absolute";
+
+  const openBelow = py < H / 2;
+  if (openBelow) {
+    popup.style.top = h + 10 + "px";
+    popup.style.bottom = "auto";
+  } else {
+    popup.style.bottom = h + 10 + "px";
+    popup.style.top = "auto";
+  }
+
+  const popupW = popup.offsetWidth || 290;
+  const alignRight = px + popupW <= W;
+  if (alignRight) {
+    popup.style.left = "0";
+    popup.style.right = "auto";
+  } else {
+    popup.style.right = "0";
+    popup.style.left = "auto";
+    if (px + w - popupW < 0) {
+      popup.style.right = "auto";
+      popup.style.left = -px + "px";
+    }
+  }
 }
 
 function clampToViewport(): void {
@@ -87,9 +112,10 @@ function clampToViewport(): void {
 function onWindowResize(): void { clampToViewport(); }
 
 function applyScale(scale: number): void {
+  currentScale = scale;
   if (!pikachuWrapEl) return;
   pikachuWrapEl.style.transform = scale === 1 ? "" : `scale(${scale})`;
-  pikachuWrapEl.style.transformOrigin = "bottom right";
+  pikachuWrapEl.style.transformOrigin = "top left";
 }
 
 function initDrag(): void {
@@ -291,7 +317,7 @@ function mount(): void {
     if (action === "generate") void runGenerate();
     else if (action === "upload") void runUpload();
     else if (action === "copy") void runCopy();
-    else if (action === "share") void runShare();
+    else if (action === "share") { showShareMenu(); return; }
     else if (action === "library") void sendMsg({ type: "OPEN_LIBRARY" });
   });
   searchInputEl!.addEventListener("input", () => void onSearchInput());
@@ -322,9 +348,15 @@ function mount(): void {
   menuEl!.addEventListener("mousedown", (e) => e.stopPropagation());
   resultsEl!.addEventListener("click", (e) => {
     e.stopPropagation();
+    const shareRow = (e.target as HTMLElement).closest<HTMLElement>("[data-share]");
+    if (shareRow) {
+      const method = shareRow.dataset.share!;
+      void handleShare(method);
+      return;
+    }
     const row = (e.target as HTMLElement).closest<HTMLElement>("[data-upload-id]");
     if (!row) return;
-    const ctxId = row.dataset.uploadId; // capture before closeMenu clears DOM
+    const ctxId = row.dataset.uploadId;
     closeMenu();
     void runUpload(ctxId);
   });
@@ -481,12 +513,12 @@ function toggleMenu(): void {
 }
 function openMenu(): void {
   closePanel();
-  // Reset search UI to its default state (actions visible, results hidden).
   searchSeq = 0;
   if (searchInputEl) searchInputEl.value = "";
   if (resultsEl) { resultsEl.classList.remove("lk-show"); resultsEl.innerHTML = ""; }
   if (actionsEl) actionsEl.classList.remove("lk-hide");
   menuEl!.classList.add("open");
+  positionPopup(menuEl);
 }
 function closeMenu(): void {
   // Bump sequence so any in-flight onSearchInput fetch is discarded.
@@ -499,6 +531,7 @@ function closeMenu(): void {
 function openPanel(): void {
   closeMenu();
   panelEl!.classList.add("open");
+  positionPopup(panelEl);
 }
 function closePanel(): void {
   panelEl?.classList.remove("open");
@@ -675,7 +708,38 @@ async function runCopy(): Promise<void> {
   }
 }
 
-async function runShare(): Promise<void> {
+function showShareMenu(): void {
+  if (!menuEl || !actionsEl) return;
+
+  closePanel();
+  searchSeq = 0;
+  if (searchInputEl) searchInputEl.value = "";
+  if (resultsEl) { resultsEl.classList.remove("lk-show"); resultsEl.innerHTML = ""; }
+
+  actionsEl.classList.add("lk-hide");
+  resultsEl!.classList.add("lk-show");
+  resultsEl!.innerHTML =
+    '<div class="lk-results-label">Share Context via</div>' +
+    '<button type="button" class="lk-result-row" data-share="whatsapp">' +
+      '<div class="lk-result-main"><div class="lk-result-title">WhatsApp</div><div class="lk-result-sub">Send .md file as document</div></div>' +
+    '</button>' +
+    '<button type="button" class="lk-result-row" data-share="telegram">' +
+      '<div class="lk-result-main"><div class="lk-result-title">Telegram</div><div class="lk-result-sub">Send .md file as document</div></div>' +
+    '</button>' +
+    '<button type="button" class="lk-result-row" data-share="linkedin">' +
+      '<div class="lk-result-main"><div class="lk-result-title">LinkedIn</div><div class="lk-result-sub">Share context as a post</div></div>' +
+    '</button>' +
+    '<div class="lk-menu-divider"></div>' +
+    '<button type="button" class="lk-result-row" data-share="download">' +
+      '<div class="lk-result-main"><div class="lk-result-title">Download .md</div><div class="lk-result-sub">Save the exact Markdown file</div></div>' +
+    '</button>';
+
+  menuEl!.classList.add("open");
+  positionPopup(menuEl);
+}
+
+async function handleShare(method: string): Promise<void> {
+  closeMenu();
   openPanel();
   panelTitleEl!.textContent = "📤 Sharing context…";
   resultEl!.hidden = true;
@@ -683,38 +747,45 @@ async function runShare(): Promise<void> {
   const ctx = await requireLatestContext();
   if (!ctx) return;
 
-  const nav = navigator as Navigator & {
-    share?: (d: { title?: string; text?: string; files?: File[] }) => Promise<void>;
-    canShare?: (d: { files?: File[] }) => boolean;
-  };
-  try {
-    if (nav.share) {
-      // Prefer sharing the context as a real .md file when the platform
-      // supports file sharing; otherwise share the text itself.
-      const file = new File([ctx.markdown], `${ctx.conversationTitle}.md`, { type: "text/markdown" });
-      if (nav.canShare?.({ files: [file] })) {
-        await nav.share({ title: ctx.conversationTitle, files: [file] });
-      } else {
-        await nav.share({ title: ctx.conversationTitle, text: ctx.markdown });
-      }
-      showResult("ok", "<strong>✓ Shared.</strong>");
-      setTimeout(closePanel, 2500);
-      return;
-    }
-  } catch (e) {
-    if (e instanceof Error && e.name === "AbortError") {
-      closePanel();
-      return; // user dismissed the share sheet
-    }
-    // fall through to the clipboard fallback below
+  const fileName = `${ctx.conversationTitle}.md`;
+  const file = new File([ctx.markdown], fileName, { type: "text/markdown" });
+
+  if (method === "download") {
+    const url = URL.createObjectURL(file);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showResult("ok", `<strong>✓ Downloaded.</strong><br>"${esc(fileName)}" saved.`);
+    setTimeout(closePanel, 2500);
+    return;
   }
-  // No Web Share API on this page/OS — say so plainly and still leave the
-  // user with the content rather than a dead end.
-  try {
-    await navigator.clipboard.writeText(ctx.markdown);
-    showResult("warn", "<strong>Sharing isn't available in this browser.</strong><br>The context was copied to your clipboard instead.");
-  } catch {
-    showResult("err", "<strong>✕ Share unavailable.</strong><br>This browser has no share support and blocked clipboard access. Use the Library's Share/Export instead.");
+
+  if (method === "whatsapp") {
+    const text = encodeURIComponent(ctx.markdown.slice(0, 4000));
+    window.open(`https://wa.me/?text=${text}`, "_blank");
+    showResult("ok", "<strong>✓ Opened WhatsApp.</strong><br>Paste or send the context.");
+    setTimeout(closePanel, 3000);
+    return;
+  }
+
+  if (method === "telegram") {
+    const text = encodeURIComponent(ctx.markdown.slice(0, 4000));
+    window.open(`https://t.me/share/url?text=${text}`, "_blank");
+    showResult("ok", "<strong>✓ Opened Telegram.</strong><br>Select a chat to send.");
+    setTimeout(closePanel, 3000);
+    return;
+  }
+
+  if (method === "linkedin") {
+    const text = encodeURIComponent(ctx.markdown.slice(0, 3000));
+    window.open(`https://www.linkedin.com/feed/?shareActive=true&text=${text}`, "_blank");
+    showResult("ok", "<strong>✓ Opened LinkedIn.</strong><br>Review and share your post.");
+    setTimeout(closePanel, 3000);
+    return;
   }
 }
 
