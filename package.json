@@ -1,6 +1,6 @@
 {
   "name": "context-bolt",
-  "version": "0.6.0",
+  "version": "1.0.0",
   "description": "Context-Bolt — Pikachu captures your whole AI conversation and carries it to any other supported LLM with one click. Privacy-first, open source, 100% local.",
   "license": "MIT",
   "private": true,

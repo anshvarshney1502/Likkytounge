@@ -7,10 +7,24 @@ semantic versioning once it reaches 1.0.
 ## [Unreleased]
 
 ### Planned
-- Swap the placeholder inline-SVG Pikachu for the real provided artwork (`public/pikachu.png`) — one-line change once the asset is available.
 - Additional site adapters for Generate/Upload Context (Copilot, Grok, Qwen).
-- Per-context version history (currently only the single "latest" pointer is tracked; every generation is kept, but not edited-in-place history of the same context).
-- Real text extraction from generated file attachments (PDF/PPT/DOCX) — currently out of scope to keep the extension dependency-free; only filenames/links and any artifact-panel text already visible in the page are captured.
+- Per-context version history.
+- Real text extraction from generated file attachments (PDF/PPT/DOCX).
+
+## [1.0.0] — 2026-08-23
+
+### Security
+- **Removed unnecessary permissions.** `scripting` and `activeTab` were declared in the manifest but never used — removed to minimize the permission surface.
+- **Fixed conversation content leaking in share URLs.** WhatsApp, Telegram, and LinkedIn share previously encoded up to 4KB of raw conversation markdown into URL query parameters, exposing it to third-party servers, browser history, and URL logs. Share now sends only the conversation title in the URL and copies the full context to the clipboard instead.
+
+### Removed (dead code)
+- Removed unused `splitIntoChunks()` from `upload.ts` and its test file — the file-attach path replaced chunked insertion.
+- Removed unused `hashString()` and `deriveConversationId()` from `utils/id.ts` — no callers existed.
+
+### Changed
+- Version bumped to **1.0.0** for production release.
+- Rewrote README for production use with zero-setup install instructions.
+- Created distributable `context-bolt-v1.0.0.zip` (210KB) — download, unzip, Load Unpacked.
 
 ## [0.6.0] — 2026-08-23
 

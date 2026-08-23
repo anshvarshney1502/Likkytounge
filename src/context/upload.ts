@@ -14,26 +14,6 @@ import type { LatestContext, UploadResult, UploadProgress } from "./types";
 import { detectPlatform } from "./extract/platforms";
 import { attachContextAsFile } from "../content/attach";
 
-/**
- * Retained for callers that want to pre-split a payload; the upload path no
- * longer chunks anything, since the whole context is handed over as a file.
- */
-export function splitIntoChunks(text: string, maxChars: number): string[] {
-  if (text.length <= maxChars) return [text];
-  const chunks: string[] = [];
-  let start = 0;
-  while (start < text.length) {
-    let end = Math.min(start + maxChars, text.length);
-    if (end < text.length) {
-      const lastBreak = text.lastIndexOf("\n\n", end);
-      if (lastBreak > start + maxChars * 0.5) end = lastBreak;
-    }
-    chunks.push(text.slice(start, end));
-    start = end;
-  }
-  return chunks;
-}
-
 /** How long to keep waiting for the destination site to accept the file. */
 const ATTACH_TIMEOUT_MS = 60_000;
 

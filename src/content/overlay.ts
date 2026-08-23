@@ -764,26 +764,31 @@ async function handleShare(method: string): Promise<void> {
     return;
   }
 
+  const sharePreview = `${ctx.conversationTitle}\n\n(Full context copied to clipboard — paste it in the chat.)`;
+
   if (method === "whatsapp") {
-    const text = encodeURIComponent(ctx.markdown.slice(0, 4000));
+    await navigator.clipboard.writeText(ctx.markdown).catch(() => {});
+    const text = encodeURIComponent(sharePreview);
     window.open(`https://wa.me/?text=${text}`, "_blank");
-    showResult("ok", "<strong>✓ Opened WhatsApp.</strong><br>Paste or send the context.");
+    showResult("ok", "<strong>✓ Opened WhatsApp.</strong><br>Full context copied to clipboard — paste it in the chat.");
     setTimeout(closePanel, 3000);
     return;
   }
 
   if (method === "telegram") {
-    const text = encodeURIComponent(ctx.markdown.slice(0, 4000));
+    await navigator.clipboard.writeText(ctx.markdown).catch(() => {});
+    const text = encodeURIComponent(sharePreview);
     window.open(`https://t.me/share/url?text=${text}`, "_blank");
-    showResult("ok", "<strong>✓ Opened Telegram.</strong><br>Select a chat to send.");
+    showResult("ok", "<strong>✓ Opened Telegram.</strong><br>Full context copied to clipboard — paste it in the chat.");
     setTimeout(closePanel, 3000);
     return;
   }
 
   if (method === "linkedin") {
-    const text = encodeURIComponent(ctx.markdown.slice(0, 3000));
+    await navigator.clipboard.writeText(ctx.markdown).catch(() => {});
+    const text = encodeURIComponent(sharePreview);
     window.open(`https://www.linkedin.com/feed/?shareActive=true&text=${text}`, "_blank");
-    showResult("ok", "<strong>✓ Opened LinkedIn.</strong><br>Review and share your post.");
+    showResult("ok", "<strong>✓ Opened LinkedIn.</strong><br>Full context copied to clipboard — paste it in the post.");
     setTimeout(closePanel, 3000);
     return;
   }

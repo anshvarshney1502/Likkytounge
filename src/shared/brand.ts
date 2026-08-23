@@ -1,6 +1,6 @@
 export const APP_NAME = "Context-Bolt";
 export const APP_TAGLINE = "Capture any AI conversation, carry it anywhere, in one click.";
-export const APP_VERSION = "0.6.0";
+export const APP_VERSION = "1.0.0";
 export const APP_REPO = "https://github.com/anshvarshney1502/Likkytounge";
 export const SUPPORTED_HOST_MATCHES = [
   "https://chatgpt.com/*",
