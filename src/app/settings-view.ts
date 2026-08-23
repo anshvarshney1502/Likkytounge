@@ -2,7 +2,7 @@ import type { Settings } from "../shared/types";
 import { getSettings, setSettings } from "../shared/settings-store";
 import { listContexts, clearAllContexts, clearOldContexts } from "../context/store";
 import { db as capsuleDb } from "../storage/db";
-import { applyTheme, applyDensity, applyReduceMotion } from "../shared/theme";
+import { applyDensity, applyReduceMotion } from "../shared/theme";
 import { showToast } from "./toast";
 import { APP_VERSION, APP_REPO } from "../shared/brand";
 
@@ -38,11 +38,6 @@ export async function renderSettingsView(
             <div class="settings-row switch-row">
               <div><div class="label">Show the Pikachu launcher</div><div class="desc">Appears on supported AI sites.</div></div>
               ${switchHtml("sw-launcher", settings.showLauncher)}
-            </div>
-            <div class="settings-row field" style="margin:0;">
-              <label for="hotkey">Keyboard shortcut for the Generate / Upload menu</label>
-              <input id="hotkey" type="text" value="${settings.launcherHotkey}" maxlength="20">
-              <p class="hint">Clicking Pikachu directly always runs Generate Context.</p>
             </div>
           </div>
         </section>
@@ -92,14 +87,7 @@ export async function renderSettingsView(
         <section class="settings-section">
           <h2>Appearance</h2>
           <div class="settings-card">
-            <div class="settings-row field" style="margin:0;">
-              <label for="theme">Theme</label>
-              <select id="theme">
-                <option value="system">Follow system</option>
-                <option value="light">Light</option>
-                <option value="dark">Dark</option>
-              </select>
-            </div>
+
             <div class="settings-row field" style="margin:0;">
               <label for="density">Interface density</label>
               <select id="density">
@@ -157,10 +145,8 @@ export async function renderSettingsView(
   main.querySelector("#s-back")!.addEventListener("click", onBack);
   main.querySelector("#s-open-about")!.addEventListener("click", () => (location.hash = "#/about"));
 
-  (main.querySelector("#hotkey") as HTMLInputElement).value = settings.launcherHotkey;
   (main.querySelector("#insertMode") as HTMLSelectElement).value = settings.insertMode;
   (main.querySelector("#exportFmt") as HTMLSelectElement).value = settings.defaultExportFormat;
-  (main.querySelector("#theme") as HTMLSelectElement).value = settings.theme;
   (main.querySelector("#density") as HTMLSelectElement).value = settings.density;
 
   const save = (patch: Partial<Settings>) => void setSettings(patch);
@@ -173,19 +159,11 @@ export async function renderSettingsView(
     applyReduceMotion(v);
   });
 
-  main.querySelector("#hotkey")!.addEventListener("change", (e) => {
-    save({ launcherHotkey: (e.target as HTMLInputElement).value.trim() || "Alt+K" });
-  });
   main.querySelector("#insertMode")!.addEventListener("change", (e) => {
     save({ insertMode: (e.target as HTMLSelectElement).value as Settings["insertMode"] });
   });
   main.querySelector("#exportFmt")!.addEventListener("change", (e) => {
     save({ defaultExportFormat: (e.target as HTMLSelectElement).value as Settings["defaultExportFormat"] });
-  });
-  main.querySelector("#theme")!.addEventListener("change", (e) => {
-    const theme = (e.target as HTMLSelectElement).value as Settings["theme"];
-    save({ theme });
-    applyTheme(theme);
   });
   main.querySelector("#density")!.addEventListener("change", (e) => {
     const density = (e.target as HTMLSelectElement).value as Settings["density"];

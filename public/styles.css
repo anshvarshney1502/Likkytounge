@@ -387,26 +387,31 @@ textarea { resize: vertical; }
   padding: 10px 14px; border-radius: var(--radius-md); font-size: 13px; margin-bottom: var(--space-6);
 }
 
-.msg { border-radius: var(--radius-md); padding: var(--space-5) var(--space-6); margin: var(--space-4) 0; }
-.msg.user { background: var(--surface-alt); border: 1px solid var(--border); }
-.msg.assistant { background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+.msg { border-radius: 12px; padding: var(--space-6) var(--space-7); margin: var(--space-6) 0; overflow-wrap: break-word; }
+.msg.user { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--border-strong); }
+.msg.assistant { background: var(--surface); border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.04); border-left: 4px solid var(--accent); }
+.msg.system { background: var(--surface-alt); border: 1px dashed var(--border); border-left: 4px solid var(--border); }
 .msg > .role {
-  font: 600 11px var(--font-body); letter-spacing: .06em; text-transform: uppercase;
-  color: var(--ink-faint); margin-bottom: var(--space-2);
+  font: 600 12px var(--font-body); letter-spacing: .05em; text-transform: uppercase;
+  color: var(--ink-soft); margin-bottom: var(--space-4);
 }
-.msg .content { font-size: 14px; line-height: 1.6; }
-.msg .content p { margin: 0 0 12px; }
+.msg .content { font-size: 14.5px; line-height: 1.7; color: var(--ink); }
+.msg .content p { margin: 0 0 16px; }
 .msg .content p:last-child { margin-bottom: 0; }
-.msg .content h1, .msg .content h2, .msg .content h3, .msg .content h4 { margin: 18px 0 8px; font-family: var(--font-display); }
+.msg .content h1, .msg .content h2, .msg .content h3, .msg .content h4 { margin: 24px 0 12px; font-family: var(--font-display); font-weight: 700; line-height: 1.3; }
+.msg .content h1 { font-size: 1.5em; }
+.msg .content h2 { font-size: 1.3em; }
+.msg .content h3 { font-size: 1.1em; }
 .msg .content h1:first-child, .msg .content h2:first-child, .msg .content h3:first-child { margin-top: 0; }
-.msg .content ul, .msg .content ol { margin: 0 0 12px; padding-left: 22px; }
-.msg .content li { margin: 3px 0; }
-.msg .content blockquote { border-left: 3px solid var(--border-strong); margin: 12px 0; padding: 2px 16px; color: var(--ink-soft); }
-.msg .content pre { background: var(--surface-alt); color: var(--ink); border: 1px solid var(--border); padding: 14px 16px; border-radius: var(--radius-sm); overflow: auto; font-size: 12.5px; margin: 12px 0; }
-.msg .content code:not(pre code) { background: var(--surface-alt); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border); font-size: 0.9em; }
-.msg .content table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 13.5px; }
-.msg .content th, .msg .content td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; }
-.msg .content hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+.msg .content ul, .msg .content ol { margin: 0 0 16px; padding-left: 24px; }
+.msg .content li { margin: 6px 0; }
+.msg .content blockquote { border-left: 3px solid var(--border-strong); margin: 16px 0; padding: 4px 16px; color: var(--ink-soft); background: var(--surface-alt); border-radius: 0 6px 6px 0; }
+.msg .content pre { background: var(--surface-alt); color: var(--ink); border: 1px solid var(--border); padding: 16px 20px; border-radius: 8px; overflow-x: auto; font-size: 13px; margin: 16px 0; line-height: 1.5; }
+.msg .content code:not(pre code) { background: var(--surface-alt); padding: 3px 6px; border-radius: 4px; border: 1px solid var(--border); font-size: 0.9em; font-family: monospace; }
+.msg .content table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 14px; }
+.msg .content th { background: var(--surface-alt); font-weight: 600; }
+.msg .content th, .msg .content td { border: 1px solid var(--border); padding: 10px 14px; text-align: left; }
+.msg .content hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
 
 /* --------------------------------------------------------- app pages -- */
 .app-page { height: 100vh; overflow-y: auto; background: var(--surface); }

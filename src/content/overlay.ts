@@ -279,26 +279,6 @@ function onGlobalKey(e: KeyboardEvent): void {
     closePanel();
     return;
   }
-  const spec = settingsCache?.launcherHotkey || "Alt+K";
-  if (matchesHotkey(e, spec)) {
-    e.preventDefault();
-    toggleMenu();
-  }
-}
-function matchesHotkey(e: KeyboardEvent, spec: string): boolean {
-  const parts = spec.split("+").map((p) => p.trim().toLowerCase());
-  const key = parts.pop() ?? "";
-  const needCtrl = parts.includes("ctrl") || parts.includes("control");
-  const needAlt = parts.includes("alt") || parts.includes("option");
-  const needShift = parts.includes("shift");
-  const needMeta = parts.includes("cmd") || parts.includes("meta");
-  return (
-    e.key.toLowerCase() === key &&
-    !!e.ctrlKey === needCtrl &&
-    !!e.altKey === needAlt &&
-    !!e.shiftKey === needShift &&
-    !!e.metaKey === needMeta
-  );
 }
 
 function toggleMenu(): void {
