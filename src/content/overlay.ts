@@ -28,6 +28,7 @@ let pikachuEl: HTMLElement | null = null;
 let stageEl: HTMLElement | null = null;
 let settingsCache: Settings | null = null;
 let contextListCache: SavedContextMeta[] | null = null;
+let contextListPromise: Promise<SavedContextMeta[]> | null = null;
 
 function fmtWhen(iso: string): string {
   const d = new Date(iso);
@@ -171,16 +172,17 @@ function mount(): void {
   });
   searchInputEl!.addEventListener("input", () => void onSearchInput());
   searchInputEl!.addEventListener("focus", () => void onSearchInput());
-  searchInputEl!.addEventListener("blur", () => {
-    setTimeout(() => {
-      if (!searchInputEl!.value.trim()) {
-        resultsEl!.classList.remove("lk-show");
-        actionsEl!.classList.remove("lk-hide");
-      }
-    }, 150);
-  });
+  // Removed blur listener: heavily dynamic host pages (like ChatGPT) often steal focus 
+  // and force it back to their own chat inputs. Relying on blur to close the search panel
+  // causes aggressive flickering and closing. The panel will stay open until explicitly
+  // closed by clicking outside or pressing Escape.
   searchInputEl!.addEventListener("click", (e) => e.stopPropagation());
-  searchInputEl!.addEventListener("keydown", (e) => e.stopPropagation());
+  searchInputEl!.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeMenu();
+    }
+    e.stopPropagation();
+  });
   searchInputEl!.addEventListener("keyup", (e) => e.stopPropagation());
   menuEl!.addEventListener("click", (e) => e.stopPropagation());
   resultsEl!.addEventListener("click", (e) => {
@@ -202,6 +204,7 @@ function unmount(): void {
   document.removeEventListener("keydown", onGlobalKey, true);
   root = rootEl = menuEl = actionsEl = searchInputEl = resultsEl = panelEl = panelTitleEl = stepsEl = resultEl = pikachuEl = stageEl = null;
   contextListCache = null;
+  contextListPromise = null;
 }
 
 /** Filters the cached context list against a query, newest first, capped for a dropdown. */
@@ -222,17 +225,19 @@ async function onSearchInput(): Promise<void> {
   resultsEl!.classList.add("lk-show");
 
   if (!contextListCache) {
-    resultsEl!.innerHTML = `<div class="lk-results-empty">Loading…</div>`;
-    try {
-      const res = await chrome.runtime.sendMessage({ type: "LIST_CONTEXTS" });
-      contextListCache = Array.isArray(res) ? (res as SavedContextMeta[]) : [];
-    } catch {
-      contextListCache = [];
+    if (!contextListPromise) {
+      resultsEl!.innerHTML = `<div class="lk-results-empty">Loading…</div>`;
+      contextListPromise = chrome.runtime.sendMessage({ type: "LIST_CONTEXTS" }).then(res => {
+        return Array.isArray(res) ? (res as SavedContextMeta[]) : [];
+      }).catch(() => []);
     }
-    if (searchInputEl!.value !== query || !resultsEl!.classList.contains("lk-show")) return;
+    contextListCache = await contextListPromise;
+    // The query may have changed while awaiting. Always use the freshest query.
+    if (!resultsEl!.classList.contains("lk-show")) return;
   }
 
-  const matches = filterContexts(contextListCache, query);
+  const currentQuery = searchInputEl!.value;
+  const matches = filterContexts(contextListCache, currentQuery);
   if (matches.length === 0) {
     const emptyMsg = query.trim() ? 'No saved contexts match "' + esc(query) + '".' : 'No saved contexts yet.';
     resultsEl!.innerHTML = '<div class="lk-results-empty">' + emptyMsg + '</div>';
