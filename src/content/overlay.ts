@@ -170,6 +170,15 @@ function mount(): void {
     else if (action === "library") void chrome.runtime.sendMessage({ type: "OPEN_LIBRARY" });
   });
   searchInputEl!.addEventListener("input", () => void onSearchInput());
+  searchInputEl!.addEventListener("focus", () => void onSearchInput());
+  searchInputEl!.addEventListener("blur", () => {
+    setTimeout(() => {
+      if (!searchInputEl!.value.trim()) {
+        resultsEl!.classList.remove("lk-show");
+        actionsEl!.classList.remove("lk-hide");
+      }
+    }, 150);
+  });
   searchInputEl!.addEventListener("click", (e) => e.stopPropagation());
   searchInputEl!.addEventListener("keydown", (e) => e.stopPropagation());
   searchInputEl!.addEventListener("keyup", (e) => e.stopPropagation());
@@ -208,14 +217,6 @@ function filterContexts(list: SavedContextMeta[], query: string): SavedContextMe
 
 async function onSearchInput(): Promise<void> {
   const query = searchInputEl!.value;
-  const hasQuery = query.trim().length > 0;
-
-  if (!hasQuery) {
-    resultsEl!.innerHTML = '';
-    resultsEl!.classList.remove("lk-show");
-    actionsEl!.classList.remove("lk-hide");
-    return;
-  }
 
   actionsEl!.classList.add("lk-hide");
   resultsEl!.classList.add("lk-show");
@@ -228,17 +229,21 @@ async function onSearchInput(): Promise<void> {
     } catch {
       contextListCache = [];
     }
-    // The query may have changed (or the menu closed) while that awaited.
     if (searchInputEl!.value !== query || !resultsEl!.classList.contains("lk-show")) return;
   }
 
   const matches = filterContexts(contextListCache, query);
   if (matches.length === 0) {
-    resultsEl!.innerHTML = '<div class="lk-results-empty">No saved contexts match "' + esc(query) + '".</div>';
+    const emptyMsg = query.trim() ? 'No saved contexts match "' + esc(query) + '".' : 'No saved contexts yet.';
+    resultsEl!.innerHTML = '<div class="lk-results-empty">' + emptyMsg + '</div>';
     return;
   }
 
   const parts: string[] = [];
+  if (!query.trim()) {
+    parts.push('<div class="lk-results-label" style="padding: 8px 16px 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; color: #80868B; letter-spacing: 0.5px;">Recent Contexts</div>');
+  }
+
   for (const c of matches) {
     const id = esc(c.id);
     const title = esc(c.title);

@@ -42,23 +42,30 @@ function itemHtml(c: SavedContextMeta, s: SidebarState): string {
   const isActive = c.id === s.activeId;
   return `
     <div class="ctx-item ${isActive ? "active" : ""}" data-id="${esc(c.id)}" tabindex="0" role="button" aria-current="${isActive}">
-      <span class="dot ${isLatest ? "latest" : ""}"></span>
       <div class="body">
-        <div class="title">${esc(c.platformLabel)} — ${esc(c.title)}</div>
-        <div class="item-meta">
-          <span>${timeAgo(c.capturedAt)}</span>
-          <span>·</span>
-          <span>${c.messageCount} msg</span>
+        <div class="ctx-item-header">
+          <div class="title">${esc(c.title)}</div>
           ${isLatest ? `<span class="latest-badge">Latest</span>` : ""}
         </div>
+        <div class="item-meta">
+          <div class="meta-left">
+            <span class="platform-label">${esc(c.platformLabel)}</span>
+            <span class="dot-sep">·</span>
+            <span>${c.messageCount} msgs</span>
+          </div>
+          <span class="time-ago">${timeAgo(c.capturedAt)}</span>
+        </div>
       </div>
-      <button class="more-btn" data-more="${esc(c.id)}" aria-label="More actions" title="More actions">⋯</button>
+      <button class="more-btn" data-more="${esc(c.id)}" aria-label="More actions" title="More actions">
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
+      </button>
       <div class="item-menu" id="menu-${esc(c.id)}">
-        <button data-act="open" data-id="${esc(c.id)}">Open</button>
+        <button data-act="open" data-id="${esc(c.id)}">Open context</button>
         <button data-act="rename" data-id="${esc(c.id)}">Rename</button>
-        <button data-act="copy" data-id="${esc(c.id)}">Copy</button>
+        <button data-act="copy" data-id="${esc(c.id)}">Copy to clipboard</button>
         <button data-act="share" data-id="${esc(c.id)}">Share</button>
-        <button data-act="export" data-id="${esc(c.id)}">Export</button>
+        <button data-act="export" data-id="${esc(c.id)}">Export as Markdown</button>
+        <div class="menu-divider"></div>
         <button data-act="delete" data-id="${esc(c.id)}" class="danger">Delete</button>
       </div>
       <span class="sr-only">${fmtBytes(c.approxSizeBytes)}</span>
