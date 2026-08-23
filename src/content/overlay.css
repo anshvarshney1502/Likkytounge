@@ -173,6 +173,14 @@
 }
 .lk-search::-webkit-search-cancel-button { display: none; }
 
+/* "Recent" section label inside the results dropdown */
+.lk-results-label {
+  padding: 8px 16px 4px;
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.6px; color: #9AA0A6;
+  background: #ffffff !important;
+}
+
 /* search results */
 .lk-results {
   flex-direction: column;

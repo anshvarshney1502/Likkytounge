@@ -27,8 +27,10 @@ let resultEl: HTMLElement | null = null;
 let pikachuEl: HTMLElement | null = null;
 let stageEl: HTMLElement | null = null;
 let settingsCache: Settings | null = null;
-let contextListCache: SavedContextMeta[] | null = null;
-let contextListPromise: Promise<SavedContextMeta[]> | null = null;
+// No context list cache — always fetch fresh so search always reflects the
+// current state. A monotonic sequence number discards responses from earlier
+// async calls that complete after a later call has already started.
+let searchSeq = 0;
 
 function fmtWhen(iso: string): string {
   const d = new Date(iso);
@@ -221,8 +223,7 @@ function unmount(): void {
   document.removeEventListener("click", onOutsideClick, true);
   document.removeEventListener("keydown", onGlobalKey, true);
   root = rootEl = menuEl = actionsEl = searchInputEl = resultsEl = panelEl = panelTitleEl = stepsEl = resultEl = pikachuEl = stageEl = null;
-  contextListCache = null;
-  contextListPromise = null;
+  searchSeq = 0;
 }
 
 /** Filters the cached context list against a query, newest first, capped for a dropdown. */
@@ -237,48 +238,78 @@ function filterContexts(list: SavedContextMeta[], query: string): SavedContextMe
 }
 
 async function onSearchInput(): Promise<void> {
-  const query = searchInputEl!.value;
+  // Claim a sequence slot. If a newer call starts while we're awaiting,
+  // our slot becomes stale and we discard our result.
+  const seq = ++searchSeq;
+  const query = searchInputEl!.value.trim();
 
-  actionsEl!.classList.add("lk-hide");
-  resultsEl!.classList.add("lk-show");
+  // Always fetch fresh — no cache. The background round-trip is < 5 ms for
+  // metadata-only queries and guarantees we see deletions, new generates, etc.
+  const res = await sendMsg<SavedContextMeta[]>({ type: "LIST_CONTEXTS" });
 
-  if (!contextListCache) {
-    if (!contextListPromise) {
-      resultsEl!.innerHTML = `<div class="lk-results-empty">Loading…</div>`;
-      contextListPromise = sendMsg<SavedContextMeta[]>({ type: "LIST_CONTEXTS" }).then(res => {
-        return Array.isArray(res) ? (res as SavedContextMeta[]) : [];
-      });
+  // Discard if a newer search started while we were awaiting, or menu closed.
+  if (seq !== searchSeq) return;
+  if (!menuEl?.classList.contains("open")) return;
+
+  const list: SavedContextMeta[] = Array.isArray(res) ? res : [];
+
+  // Empty input: show recent contexts only if any exist. If none exist, keep
+  // showing the action buttons so the menu doesn't look broken/empty.
+  if (!query) {
+    if (list.length === 0) {
+      // No contexts at all — don't switch to results panel; leave actions visible.
+      actionsEl!.classList.remove("lk-hide");
+      resultsEl!.classList.remove("lk-show");
+      resultsEl!.innerHTML = "";
+      return;
     }
-    contextListCache = await contextListPromise;
-    // The query may have changed while awaiting. Always use the freshest query.
-    if (!resultsEl!.classList.contains("lk-show")) return;
-  }
-
-  const currentQuery = searchInputEl!.value;
-  const matches = filterContexts(contextListCache, currentQuery);
-  if (matches.length === 0) {
-    const emptyMsg = query.trim() ? 'No saved contexts match "' + esc(query) + '".' : 'No saved contexts yet.';
-    resultsEl!.innerHTML = '<div class="lk-results-empty">' + emptyMsg + '</div>';
+    // Show up to 8 most recent contexts.
+    const recent = [...list]
+      .sort((a, b) => new Date(b.capturedAt).getTime() - new Date(a.capturedAt).getTime())
+      .slice(0, 8);
+    actionsEl!.classList.add("lk-hide");
+    resultsEl!.classList.add("lk-show");
+    resultsEl!.innerHTML = buildResultRows(recent, false);
     return;
   }
 
-  const parts: string[] = [];
-  if (!query.trim()) {
-    parts.push('<div class="lk-results-label" style="padding: 8px 16px 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; color: #80868B; letter-spacing: 0.5px;">Recent Contexts</div>');
+  // Non-empty query: filter and show results (always switch to results panel).
+  actionsEl!.classList.add("lk-hide");
+  resultsEl!.classList.add("lk-show");
+  const matches = filterContexts(list, query);
+  if (matches.length === 0) {
+    resultsEl!.innerHTML = '<div class="lk-results-empty">No contexts match "' + esc(query) + '".</div>';
+    return;
   }
+  resultsEl!.innerHTML = buildResultRows(matches, true);
+}
 
-  for (const c of matches) {
+function buildResultRows(items: SavedContextMeta[], showQuery: boolean): string {
+  const parts: string[] = [];
+  if (!showQuery) {
+    parts.push(
+      '<div class="lk-results-label">Recent</div>'
+    );
+  }
+  for (const c of items) {
     const id = esc(c.id);
     const title = esc(c.title);
     const platform = esc(c.platformLabel);
     const when = esc(fmtWhen(c.capturedAt));
-    const svg = `<div class="lk-result-upload" aria-hidden="true"><svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M12 19V5M5 12l7-7 7 7'/></svg></div>`;
-    const html = '<button type="button" class="lk-result-row" data-upload-id="' + id + '" title="Upload: ' + title + '">' +
-      '<div class="lk-result-main"><div class="lk-result-title">' + title + '</div>' +
-      '<div class="lk-result-sub">' + platform + ' · ' + when + '</div></div>' + svg + '</button>';
-    parts.push(html);
+    parts.push(
+      '<button type="button" class="lk-result-row" data-upload-id="' + id + '">' +
+      '<div class="lk-result-main">' +
+      '<div class="lk-result-title">' + title + '</div>' +
+      '<div class="lk-result-sub">' + platform + ' · ' + when + '</div>' +
+      '</div>' +
+      '<div class="lk-result-upload" aria-hidden="true">' +
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
+      '<path d="M12 19V5M5 12l7-7 7 7"/>' +
+      '</svg></div>' +
+      '</button>'
+    );
   }
-  resultsEl!.innerHTML = parts.join('');
+  return parts.join("");
 }
 
 function onOutsideClick(e: Event): void {
@@ -304,9 +335,16 @@ function toggleMenu(): void {
 }
 function openMenu(): void {
   closePanel();
+  // Reset search UI to its default state (actions visible, results hidden).
+  searchSeq = 0;
+  if (searchInputEl) searchInputEl.value = "";
+  if (resultsEl) { resultsEl.classList.remove("lk-show"); resultsEl.innerHTML = ""; }
+  if (actionsEl) actionsEl.classList.remove("lk-hide");
   menuEl!.classList.add("open");
 }
 function closeMenu(): void {
+  // Bump sequence so any in-flight onSearchInput fetch is discarded.
+  searchSeq++;
   menuEl?.classList.remove("open");
   if (searchInputEl) searchInputEl.value = "";
   if (resultsEl) { resultsEl.classList.remove("lk-show"); resultsEl.innerHTML = ""; }
