@@ -166,9 +166,13 @@ const claude: PlatformAdapter = {
 
     const nodes = [...userNodes, ...assistantNodes];
     const leaves = nodes.filter((el) => !nodes.some((o) => o !== el && el.contains(o)));
-    leaves.sort((a, b) =>
-      a === b ? 0 : a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1,
-    );
+    leaves.sort((a, b) => {
+      if (a === b) return 0;
+      const pos = a.compareDocumentPosition(b);
+      if (pos & Node.DOCUMENT_POSITION_FOLLOWING) return -1;
+      if (pos & Node.DOCUMENT_POSITION_PRECEDING) return 1;
+      return 0;
+    });
     const out: ContextMessage[] = [];
     const included = new Set<Element>();
     for (const el of leaves) {
@@ -220,9 +224,13 @@ const gemini: PlatformAdapter = {
     }
 
     const nodes = [...userNodes, ...assistantNodes];
-    nodes.sort((a, b) =>
-      a === b ? 0 : a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1,
-    );
+    nodes.sort((a, b) => {
+      if (a === b) return 0;
+      const pos = a.compareDocumentPosition(b);
+      if (pos & Node.DOCUMENT_POSITION_FOLLOWING) return -1;
+      if (pos & Node.DOCUMENT_POSITION_PRECEDING) return 1;
+      return 0;
+    });
     const out: ContextMessage[] = [];
     const included = new Set<Element>();
     for (const el of nodes) {

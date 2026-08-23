@@ -10,7 +10,6 @@ import type { SavedContextMeta } from "../context/store";
 import { generateContext } from "../context/generate";
 import { uploadContext } from "../context/upload";
 import { pikachuImgTag } from "./pikachu-icon";
-import { BOLT_SVG } from "./thunderbolt-icon";
 import overlayCss from "./overlay.css";
 
 const HOST_ID = "context-bolt-host";
@@ -69,27 +68,27 @@ function mount(): void {
       <div class="lk-menu-header">
         <input type="search" id="lk-search" class="lk-search" placeholder="Search saved contexts…" autocomplete="off">
       </div>
-      <div class="lk-results" id="lk-results" hidden></div>
+      <div class="lk-results" id="lk-results"></div>
       <div class="lk-actions" id="lk-actions">
         <button type="button" data-action="generate" role="menuitem" class="lk-menu-item">
-          <svg class="lk-menu-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          <svg class='lk-menu-item-icon' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'><polygon points='13 2 3 14 12 14 11 22 21 10 12 10 13 2'/></svg>
           <span class="lk-menu-label">Generate Context</span>
         </button>
         <button type="button" data-action="upload" role="menuitem" class="lk-menu-item">
-          <svg class="lk-menu-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <svg class='lk-menu-item-icon' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'><path d='M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4'/><polyline points='17 8 12 3 7 8'/><line x1='12' y1='3' x2='12' y2='15'/></svg>
           <span class="lk-menu-label">Upload Context</span>
         </button>
         <div class="lk-menu-divider"></div>
         <button type="button" data-action="copy" role="menuitem" class="lk-menu-item">
-          <svg class="lk-menu-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          <svg class='lk-menu-item-icon' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'><rect x='9' y='9' width='13' height='13' rx='2'/><path d='M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1'/></svg>
           <span class="lk-menu-label">Copy Context</span>
         </button>
         <button type="button" data-action="share" role="menuitem" class="lk-menu-item">
-          <svg class="lk-menu-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          <svg class='lk-menu-item-icon' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'><circle cx='18' cy='5' r='3'/><circle cx='6' cy='12' r='3'/><circle cx='18' cy='19' r='3'/><line x1='8.59' y1='13.51' x2='15.42' y2='17.49'/><line x1='15.41' y1='6.51' x2='8.59' y2='10.49'/></svg>
           <span class="lk-menu-label">Share Context</span>
         </button>
         <button type="button" data-action="library" role="menuitem" class="lk-menu-item">
-          <svg class="lk-menu-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+          <svg class='lk-menu-item-icon' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'><path d='M4 19.5A2.5 2.5 0 016.5 17H20'/><path d='M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z'/></svg>
           <span class="lk-menu-label">Open Library</span>
         </button>
       </div>
@@ -105,13 +104,13 @@ function mount(): void {
         <div class="lk-flash"></div>
         <div class="lk-ring"></div>
         <div class="lk-ring delay"></div>
-        <div class="lk-bolt">${BOLT_SVG}</div>
-        <div class="lk-bolt">${BOLT_SVG}</div>
-        <div class="lk-bolt">${BOLT_SVG}</div>
-        <div class="lk-bolt">${BOLT_SVG}</div>
-        <div class="lk-bolt">${BOLT_SVG}</div>
-        <div class="lk-bolt">${BOLT_SVG}</div>
-        <div class="lk-bolt">${BOLT_SVG}</div>
+        <div class="lk-bolt" data-bolt></div>
+        <div class="lk-bolt" data-bolt></div>
+        <div class="lk-bolt" data-bolt></div>
+        <div class="lk-bolt" data-bolt></div>
+        <div class="lk-bolt" data-bolt></div>
+        <div class="lk-bolt" data-bolt></div>
+        <div class="lk-bolt" data-bolt></div>
       </div>
       <button class="lk-pikachu" id="lk-pikachu" aria-label="Open Context-Bolt menu" title="Generate or Upload context">
         ${pikachuImgTag()}
@@ -120,6 +119,21 @@ function mount(): void {
     </div>
   `;
   root.appendChild(rootEl);
+
+  // Build bolt SVGs via DOM API to avoid HTML-parser viewBox encoding issues.
+  root.querySelectorAll<HTMLElement>("[data-bolt]").forEach((wrap) => {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("aria-hidden", "true");
+    svg.style.cssText = "width:100%;height:100%;display:block";
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", "M13 2 L4 14 H11 L9.5 22 L20 9 H12.5 L13 2 Z");
+    path.setAttribute("fill", "#ffe14d");
+    path.setAttribute("stroke", "#c9960a");
+    path.setAttribute("stroke-width", "0.6");
+    svg.appendChild(path);
+    wrap.appendChild(svg);
+  });
 
   menuEl = root.getElementById("lk-menu");
   actionsEl = root.getElementById("lk-actions");
@@ -164,8 +178,9 @@ function mount(): void {
     e.stopPropagation();
     const row = (e.target as HTMLElement).closest<HTMLElement>("[data-upload-id]");
     if (!row) return;
+    const ctxId = row.dataset.uploadId; // capture before closeMenu clears DOM
     closeMenu();
-    void runUpload(row.dataset.uploadId);
+    void runUpload(ctxId);
   });
 
   document.addEventListener("click", onOutsideClick, true);
@@ -197,13 +212,13 @@ async function onSearchInput(): Promise<void> {
 
   if (!hasQuery) {
     resultsEl!.innerHTML = '';
-    resultsEl!.hidden = true;
-    actionsEl!.hidden = false;
+    resultsEl!.classList.remove("lk-show");
+    actionsEl!.classList.remove("lk-hide");
     return;
   }
 
-  actionsEl!.hidden = true;
-  resultsEl!.hidden = false;
+  actionsEl!.classList.add("lk-hide");
+  resultsEl!.classList.add("lk-show");
 
   if (!contextListCache) {
     resultsEl!.innerHTML = `<div class="lk-results-empty">Loading…</div>`;
@@ -214,12 +229,12 @@ async function onSearchInput(): Promise<void> {
       contextListCache = [];
     }
     // The query may have changed (or the menu closed) while that awaited.
-    if (searchInputEl!.value !== query || resultsEl!.hidden) return;
+    if (searchInputEl!.value !== query || !resultsEl!.classList.contains("lk-show")) return;
   }
 
   const matches = filterContexts(contextListCache, query);
   if (matches.length === 0) {
-    resultsEl!.innerHTML = '<div class=”lk-results-empty”>No saved contexts match “' + esc(query) + '”.</div>';
+    resultsEl!.innerHTML = '<div class="lk-results-empty">No saved contexts match "' + esc(query) + '".</div>';
     return;
   }
 
@@ -229,10 +244,10 @@ async function onSearchInput(): Promise<void> {
     const title = esc(c.title);
     const platform = esc(c.platformLabel);
     const when = esc(fmtWhen(c.capturedAt));
-    const svg = '<div class=”lk-result-upload” aria-hidden=”true”><svg width=”14” height=”14” viewBox=”0 0 24 24” fill=”none” stroke=”currentColor” stroke-width=”2.5” stroke-linecap=”round” stroke-linejoin=”round”><path d=”M12 19V5M5 12l7-7 7 7”/></svg></div>';
-    const html = '<button type=”button” class=”lk-result-row” data-upload-id=”' + id + '” title=”Upload: ' + title + '”>' +
-      '<div class=”lk-result-main”><div class=”lk-result-title”>' + title + '</div>' +
-      '<div class=”lk-result-sub”>' + platform + ' · ' + when + '</div></div>' + svg + '</button>';
+    const svg = `<div class="lk-result-upload" aria-hidden="true"><svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M12 19V5M5 12l7-7 7 7'/></svg></div>`;
+    const html = '<button type="button" class="lk-result-row" data-upload-id="' + id + '" title="Upload: ' + title + '">' +
+      '<div class="lk-result-main"><div class="lk-result-title">' + title + '</div>' +
+      '<div class="lk-result-sub">' + platform + ' · ' + when + '</div></div>' + svg + '</button>';
     parts.push(html);
   }
   resultsEl!.innerHTML = parts.join('');
@@ -286,8 +301,8 @@ function openMenu(): void {
 function closeMenu(): void {
   menuEl?.classList.remove("open");
   if (searchInputEl) searchInputEl.value = "";
-  if (resultsEl) resultsEl.hidden = true;
-  if (actionsEl) actionsEl.hidden = false;
+  if (resultsEl) { resultsEl.classList.remove("lk-show"); resultsEl.innerHTML = ""; }
+  if (actionsEl) actionsEl.classList.remove("lk-hide");
 }
 function openPanel(): void {
   closeMenu();

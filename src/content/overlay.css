@@ -1,8 +1,11 @@
 :host, :host * { box-sizing: border-box; }
 
-/* Enforce hidden attribute — author display: flex/block overrides the UA sheet's
-   [hidden]{display:none}, so we must re-apply it explicitly inside the shadow root. */
-:host [hidden] { display: none !important; }
+/* Class-based visibility — more reliable than the `hidden` attribute because
+   author display:flex/block rules can override the UA-sheet's [hidden]{display:none}
+   even with !important in some Shadow DOM contexts. */
+.lk-results  { display: none; }
+.lk-results.lk-show  { display: flex; }
+.lk-actions.lk-hide  { display: none; }
 
 .lk-root {
   --cb-gold: #8A9A5B;
@@ -172,30 +175,31 @@
 
 /* search results */
 .lk-results {
-  display: flex; flex-direction: column;
+  flex-direction: column;
   max-height: 240px; overflow-y: auto;
-  background: #ffffff;
+  background: #ffffff !important;
   border-bottom: 1px solid #E2E2E2;
 }
 .lk-results-empty {
-  display: block; padding: 12px 16px; font-size: 13px; color: #80868B;
-  background: #ffffff;
+  display: block !important; padding: 12px 16px; font-size: 13px; color: #80868B !important;
+  background: #ffffff !important;
 }
 .lk-result-row {
-  display: flex; align-items: center; gap: 12px;
+  display: flex !important; align-items: center; gap: 12px;
   width: 100%; text-align: left; padding: 10px 16px; border: none;
-  background: #ffffff; cursor: pointer; color: #1F1F1F; font: 13px/1.35 var(--cb-font);
+  background: #ffffff !important; cursor: pointer; color: #1F1F1F !important;
+  font-size: 13px !important; line-height: 1.35; font-family: var(--cb-font);
   border-bottom: 1px solid #F0F0F0;
   transition: background .1s;
 }
 .lk-result-row:last-child { border-bottom: none; }
-.lk-result-row:hover { background: #F8FAFE; }
-.lk-result-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.lk-result-row:hover { background: #F8FAFE !important; }
+.lk-result-main { display: flex !important; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
 .lk-result-title {
-  display: block; font-size: 13px; font-weight: 500; color: #1F1F1F;
+  display: block !important; font-size: 13px !important; font-weight: 500 !important; color: #1F1F1F !important;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.lk-result-sub { display: block; font-size: 11px; color: #80868B; }
+.lk-result-sub { display: block !important; font-size: 11px !important; color: #80868B !important; }
 .lk-result-upload {
   flex-shrink: 0; width: 18px; height: 18px; color: #BDC1C6;
   display: flex; align-items: center; justify-content: center;
@@ -204,15 +208,16 @@
 .lk-result-row:hover .lk-result-upload { color: var(--cb-gold); }
 
 /* action items */
-.lk-actions { display: flex; flex-direction: column; padding: 4px 0; background: #ffffff; }
+.lk-actions { display: flex; flex-direction: column; padding: 4px 0; background: #ffffff !important; }
 .lk-menu-item {
-  display: flex; align-items: center; gap: 14px;
+  display: flex !important; align-items: center; gap: 14px;
   width: 100%; text-align: left; padding: 11px 16px; border: none;
-  background: #ffffff; cursor: pointer; color: #1F1F1F; font: 14px/1.4 var(--cb-font);
+  background: #ffffff !important; cursor: pointer; color: #1F1F1F !important;
+  font-size: 14px !important; line-height: 1.4; font-family: var(--cb-font);
   transition: background .1s;
 }
-.lk-menu-item:hover { background: #F8FAFE; }
-.lk-menu-item:active { background: #EFF3FB; }
+.lk-menu-item:hover { background: #F8FAFE !important; }
+.lk-menu-item:active { background: #EFF3FB !important; }
 .lk-menu-item:focus-visible { outline: 2px solid var(--cb-gold); outline-offset: -2px; }
 
 .lk-menu-item-icon {
