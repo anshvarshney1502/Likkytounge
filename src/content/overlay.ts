@@ -172,7 +172,11 @@ function mount(): void {
   });
   searchInputEl!.addEventListener("input", () => void onSearchInput());
   searchInputEl!.addEventListener("click", (e) => e.stopPropagation());
+  searchInputEl!.addEventListener("keydown", (e) => e.stopPropagation());
+  searchInputEl!.addEventListener("keyup", (e) => e.stopPropagation());
+  menuEl!.addEventListener("click", (e) => e.stopPropagation());
   resultsEl!.addEventListener("click", (e) => {
+    e.stopPropagation();
     const row = (e.target as HTMLElement).closest<HTMLElement>("[data-upload-id]");
     if (!row) return;
     closeMenu();
@@ -247,7 +251,11 @@ async function onSearchInput(): Promise<void> {
     .join("");
 }
 
-function onOutsideClick(): void {
+function onOutsideClick(e: Event): void {
+  // Only close if click is truly outside the menu (not inside shadow DOM)
+  if (menuEl && root && e.target instanceof Node) {
+    if (root.contains(e.target) || menuEl.contains(e.target)) return;
+  }
   closeMenu();
 }
 function onGlobalKey(e: KeyboardEvent): void {
