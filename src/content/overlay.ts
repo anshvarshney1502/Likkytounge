@@ -72,40 +72,25 @@ function mount(): void {
       <div class="lk-results" id="lk-results" hidden></div>
       <div class="lk-actions" id="lk-actions">
         <button type="button" data-action="generate" role="menuitem" class="lk-menu-item">
-          <div class="lk-menu-item-icon">⚡</div>
-          <div class="lk-menu-item-text">
-            <div class="lk-menu-label">Generate Context</div>
-            <div class="lk-menu-sub">Capture this entire conversation</div>
-          </div>
+          <svg class="lk-menu-item-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          <div class="lk-menu-label">Generate Context</div>
         </button>
         <button type="button" data-action="upload" role="menuitem" class="lk-menu-item">
-          <div class="lk-menu-item-icon">↑</div>
-          <div class="lk-menu-item-text">
-            <div class="lk-menu-label">Upload Context</div>
-            <div class="lk-menu-sub">Attach latest as .md file</div>
-          </div>
+          <svg class="lk-menu-item-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" transform="rotate(90 12 12)"/><rect x="2" y="16" width="20" height="2" rx="1"/></svg>
+          <div class="lk-menu-label">Upload Context</div>
         </button>
         <div class="lk-menu-divider"></div>
         <button type="button" data-action="copy" role="menuitem" class="lk-menu-item">
-          <div class="lk-menu-item-icon">⎘</div>
-          <div class="lk-menu-item-text">
-            <div class="lk-menu-label">Copy Context</div>
-            <div class="lk-menu-sub">To clipboard</div>
-          </div>
+          <svg class="lk-menu-item-icon" viewBox="0 0 24 24" fill="currentColor"><rect x="9" y="9" width="13" height="13" rx="1"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>
+          <div class="lk-menu-label">Copy Context</div>
         </button>
         <button type="button" data-action="share" role="menuitem" class="lk-menu-item">
-          <div class="lk-menu-item-icon">⤴</div>
-          <div class="lk-menu-item-text">
-            <div class="lk-menu-label">Share Context</div>
-            <div class="lk-menu-sub">With others</div>
-          </div>
+          <svg class="lk-menu-item-icon" viewBox="0 0 24 24" fill="currentColor"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51a6 6 0 0 0 6.82 0M15.41 6.49a6 6 0 0 0-6.82 0" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+          <div class="lk-menu-label">Share Context</div>
         </button>
         <button type="button" data-action="library" role="menuitem" class="lk-menu-item">
-          <div class="lk-menu-item-icon">◧</div>
-          <div class="lk-menu-item-text">
-            <div class="lk-menu-label">Open Library</div>
-            <div class="lk-menu-sub">Browse all saved</div>
-          </div>
+          <svg class="lk-menu-item-icon" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>
+          <div class="lk-menu-label">Open Library</div>
         </button>
       </div>
     </div>
@@ -234,21 +219,23 @@ async function onSearchInput(): Promise<void> {
 
   const matches = filterContexts(contextListCache, query);
   if (matches.length === 0) {
-    resultsEl!.innerHTML = `<div class="lk-results-empty">No saved contexts match “${esc(query)}”.</div>`;
+    resultsEl!.innerHTML = '<div class=”lk-results-empty”>No saved contexts match “' + esc(query) + '”.</div>';
     return;
   }
-  resultsEl!.innerHTML = matches
-    .map(
-      (c) => `
-      <button type="button" class="lk-result-row" data-upload-id="${esc(c.id)}" title="Upload “${esc(c.title)}”">
-        <span class="lk-result-main">
-          <strong>${esc(c.title)}</strong>
-          <span class="lk-result-sub">${esc(c.platformLabel)} · ${esc(fmtWhen(c.capturedAt))}</span>
-        </span>
-        <span class="lk-result-upload" aria-hidden="true">↑</span>
-      </button>`,
-    )
-    .join("");
+
+  const parts: string[] = [];
+  for (const c of matches) {
+    const id = esc(c.id);
+    const title = esc(c.title);
+    const platform = esc(c.platformLabel);
+    const when = esc(fmtWhen(c.capturedAt));
+    const svg = '<svg class=”lk-result-upload” aria-hidden=”true” viewBox=”0 0 24 24” fill=”none” stroke=”currentColor”><polyline points=”9 18 15 12 9 6”></polyline></svg>';
+    const html = '<button type=”button” class=”lk-result-row” data-upload-id=”' + id + '” title=”Upload: ' + title + '”>' +
+      '<span class=”lk-result-main”><strong>' + title + '</strong>' +
+      '<span class=”lk-result-sub”>' + platform + ' · ' + when + '</span></span>' + svg + '</button>';
+    parts.push(html);
+  }
+  resultsEl!.innerHTML = parts.join('');
 }
 
 function onOutsideClick(e: Event): void {
