@@ -51,7 +51,9 @@
   --dur: 220ms;
 
   --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
-  --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px;
+  --space-5: 20px; --space-6: 24px; --space-7: 28px; --space-8: 32px; --space-10: 40px;
+
+  --accent: var(--wine);
 
   color-scheme: light dark;
 }
@@ -376,42 +378,80 @@ textarea { resize: vertical; }
 .dropdown button:hover { background: var(--wine-tint-08); }
 .dropdown .divider { height: 1px; background: var(--border); margin: 5px 2px; }
 
-.viewer-scroll { flex: 1; overflow-y: auto; }
+.viewer-scroll { flex: 1; overflow-y: auto; background: var(--surface-alt); }
 .viewer-doc {
-  max-width: 720px; margin: 0 auto; padding: var(--space-10) var(--space-6) 80px;
+  max-width: 780px; margin: 0 auto; padding: var(--space-8) var(--space-6) 80px;
   animation: doc-in var(--dur) var(--ease);
 }
 @keyframes doc-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 .doc-warn {
   background: var(--wine-tint-08); border: 1px solid var(--border); color: var(--warn);
-  padding: 10px 14px; border-radius: var(--radius-md); font-size: 13px; margin-bottom: var(--space-6);
+  padding: 12px 16px; border-radius: var(--radius-md); font-size: 13px; margin-bottom: var(--space-6);
 }
 
-.msg { border-radius: 12px; padding: var(--space-6) var(--space-7); margin: var(--space-6) 0; overflow-wrap: break-word; }
-.msg.user { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--border-strong); }
-.msg.assistant { background: var(--surface); border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.04); border-left: 4px solid var(--accent); }
-.msg.system { background: var(--surface-alt); border: 1px dashed var(--border); border-left: 4px solid var(--border); }
-.msg > .role {
-  font: 600 12px var(--font-body); letter-spacing: .05em; text-transform: uppercase;
-  color: var(--ink-soft); margin-bottom: var(--space-4);
+.msg {
+  border-radius: var(--radius-lg); padding: 20px 24px; margin: 16px 0;
+  overflow-wrap: break-word; word-break: break-word;
 }
-.msg .content { font-size: 14.5px; line-height: 1.7; color: var(--ink); }
-.msg .content p { margin: 0 0 16px; }
+.msg.user {
+  background: var(--surface); border: 1px solid var(--border);
+  border-left: 3px solid var(--border-strong);
+}
+.msg.assistant {
+  background: var(--surface); border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+.msg.system {
+  background: var(--surface-alt); border: 1px dashed var(--border);
+  border-left: 3px solid var(--border-strong);
+}
+.msg > .role {
+  font: 600 11px/1 var(--font-body); letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink-faint); margin-bottom: 14px; padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.msg.user > .role { color: var(--ink-soft); }
+.msg.assistant > .role { color: var(--accent-text); }
+
+.msg .content { font-size: 14px; line-height: 1.75; color: var(--ink); }
+.msg .content p { margin: 0 0 14px; }
 .msg .content p:last-child { margin-bottom: 0; }
-.msg .content h1, .msg .content h2, .msg .content h3, .msg .content h4 { margin: 24px 0 12px; font-family: var(--font-display); font-weight: 700; line-height: 1.3; }
-.msg .content h1 { font-size: 1.5em; }
-.msg .content h2 { font-size: 1.3em; }
-.msg .content h3 { font-size: 1.1em; }
-.msg .content h1:first-child, .msg .content h2:first-child, .msg .content h3:first-child { margin-top: 0; }
-.msg .content ul, .msg .content ol { margin: 0 0 16px; padding-left: 24px; }
-.msg .content li { margin: 6px 0; }
-.msg .content blockquote { border-left: 3px solid var(--border-strong); margin: 16px 0; padding: 4px 16px; color: var(--ink-soft); background: var(--surface-alt); border-radius: 0 6px 6px 0; }
-.msg .content pre { background: var(--surface-alt); color: var(--ink); border: 1px solid var(--border); padding: 16px 20px; border-radius: 8px; overflow-x: auto; font-size: 13px; margin: 16px 0; line-height: 1.5; }
-.msg .content code:not(pre code) { background: var(--surface-alt); padding: 3px 6px; border-radius: 4px; border: 1px solid var(--border); font-size: 0.9em; font-family: monospace; }
-.msg .content table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 14px; }
+.msg .content h1, .msg .content h2, .msg .content h3, .msg .content h4 {
+  margin: 22px 0 10px; font-family: var(--font-display); font-weight: 700; line-height: 1.3;
+  color: var(--ink);
+}
+.msg .content h1 { font-size: 1.4em; }
+.msg .content h2 { font-size: 1.2em; }
+.msg .content h3 { font-size: 1.05em; }
+.msg .content h4 { font-size: 1em; }
+.msg .content h1:first-child, .msg .content h2:first-child,
+.msg .content h3:first-child, .msg .content h4:first-child { margin-top: 0; }
+.msg .content ul, .msg .content ol { margin: 0 0 14px; padding-left: 22px; }
+.msg .content li { margin: 5px 0; line-height: 1.65; }
+.msg .content li > p { margin-bottom: 6px; }
+.msg .content blockquote {
+  border-left: 3px solid var(--border-strong); margin: 14px 0; padding: 8px 16px;
+  color: var(--ink-soft); background: var(--surface-alt); border-radius: 0 6px 6px 0;
+}
+.msg .content pre {
+  background: var(--surface-alt); color: var(--ink); border: 1px solid var(--border);
+  padding: 14px 18px; border-radius: var(--radius-md); overflow-x: auto;
+  font-size: 13px; margin: 14px 0; line-height: 1.55; font-family: var(--font-mono);
+}
+.msg .content code:not(pre code) {
+  background: var(--surface-alt); padding: 2px 6px; border-radius: 4px;
+  border: 1px solid var(--border); font-size: 0.875em; font-family: var(--font-mono);
+}
+.msg .content table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 13.5px; }
 .msg .content th { background: var(--surface-alt); font-weight: 600; }
-.msg .content th, .msg .content td { border: 1px solid var(--border); padding: 10px 14px; text-align: left; }
-.msg .content hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+.msg .content th, .msg .content td { border: 1px solid var(--border); padding: 9px 13px; text-align: left; }
+.msg .content tr:hover td { background: var(--wine-tint-08); }
+.msg .content hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+.msg .content a { color: var(--accent-text); text-decoration: underline; text-underline-offset: 2px; }
+.msg .content a:hover { color: var(--wine); }
+.msg .content strong { font-weight: 600; color: var(--ink); }
+.msg .content em { font-style: italic; color: var(--ink-soft); }
 
 /* --------------------------------------------------------- app pages -- */
 .app-page { height: 100vh; overflow-y: auto; background: var(--surface); }

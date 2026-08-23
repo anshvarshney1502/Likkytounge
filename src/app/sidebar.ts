@@ -85,7 +85,7 @@ export function renderSidebarList(container: HTMLElement, s: SidebarState, h: Si
     return;
   }
   if (filtered.length === 0) {
-    container.innerHTML = `<div class="sidebar-empty">No contexts match “${esc(s.query)}”.</div>`;
+    container.innerHTML = `<div class="sidebar-empty">No contexts match "${esc(s.query)}".</div>`;
     return;
   }
 

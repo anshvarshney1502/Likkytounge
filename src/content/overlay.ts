@@ -40,10 +40,28 @@ function fmtWhen(iso: string): string {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
+function isExtensionAlive(): boolean {
+  try { return !!chrome.runtime?.id; } catch { return false; }
+}
+
+async function sendMsg<T>(msg: object): Promise<T | null> {
+  if (!isExtensionAlive()) return null;
+  try {
+    return (await chrome.runtime.sendMessage(msg)) as T;
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.includes("Extension context invalidated") || msg.includes("context invalidated")) {
+      unmount();
+    }
+    return null;
+  }
+}
+
 async function getSettings(): Promise<Settings> {
   if (settingsCache) return settingsCache;
-  settingsCache = (await chrome.runtime.sendMessage({ type: "GET_SETTINGS" })) as Settings;
-  return settingsCache;
+  const s = await sendMsg<Settings>({ type: "GET_SETTINGS" });
+  if (s) settingsCache = s;
+  return settingsCache ?? ({} as Settings);
 }
 
 function esc(s: string): string {
@@ -168,7 +186,7 @@ function mount(): void {
     else if (action === "upload") void runUpload();
     else if (action === "copy") void runCopy();
     else if (action === "share") void runShare();
-    else if (action === "library") void chrome.runtime.sendMessage({ type: "OPEN_LIBRARY" });
+    else if (action === "library") void sendMsg({ type: "OPEN_LIBRARY" });
   });
   searchInputEl!.addEventListener("input", () => void onSearchInput());
   searchInputEl!.addEventListener("focus", () => void onSearchInput());
@@ -227,9 +245,9 @@ async function onSearchInput(): Promise<void> {
   if (!contextListCache) {
     if (!contextListPromise) {
       resultsEl!.innerHTML = `<div class="lk-results-empty">Loading…</div>`;
-      contextListPromise = chrome.runtime.sendMessage({ type: "LIST_CONTEXTS" }).then(res => {
+      contextListPromise = sendMsg<SavedContextMeta[]>({ type: "LIST_CONTEXTS" }).then(res => {
         return Array.isArray(res) ? (res as SavedContextMeta[]) : [];
-      }).catch(() => []);
+      });
     }
     contextListCache = await contextListPromise;
     // The query may have changed while awaiting. Always use the freshest query.
@@ -440,17 +458,16 @@ async function runUpload(contextId?: string): Promise<void> {
 async function requireLatestContext(): Promise<{ markdown: string; conversationTitle: string } | null> {
   type MaybeCtx = { markdown?: string; conversationTitle?: string } | null;
   let ctx: MaybeCtx = null;
-  try {
-    const res = await chrome.runtime.sendMessage({ type: "GET_LATEST_CONTEXT" });
-    if (res && typeof res === "object" && "error" in res) {
-      showResult("err", `<strong>✕ Could not read the latest context.</strong><br>${esc(String(res.error))}`);
-      return null;
-    }
-    ctx = res as MaybeCtx;
-  } catch (e) {
-    showResult("err", `<strong>✕ Could not read the latest context.</strong><br>${esc(e instanceof Error ? e.message : "Unknown error")}`);
+  const res = await sendMsg<MaybeCtx>({ type: "GET_LATEST_CONTEXT" });
+  if (!isExtensionAlive()) {
+    showResult("err", "<strong>✕ Extension was reloaded.</strong><br>Please refresh this page.");
     return null;
   }
+  if (res && typeof res === "object" && "error" in res) {
+    showResult("err", `<strong>✕ Could not read the latest context.</strong><br>${esc(String((res as { error: unknown }).error))}`);
+    return null;
+  }
+  ctx = res;
   if (!ctx || !ctx.markdown) {
     showResult("err", "<strong>✕ No context yet.</strong><br>No generated context is available yet. Generate a context first.");
     return null;
@@ -467,7 +484,7 @@ async function runCopy(): Promise<void> {
   if (!ctx) return;
   try {
     await navigator.clipboard.writeText(ctx.markdown);
-    showResult("ok", `<strong>✓ Context copied.</strong><br>“${esc(ctx.conversationTitle)}” is on your clipboard.`);
+    showResult("ok", `<strong>✓ Context copied.</strong><br>"${esc(ctx.conversationTitle)}" is on your clipboard.`);
     setTimeout(closePanel, 3000);
   } catch {
     showResult("err", "<strong>✕ Copy failed.</strong><br>This page blocked clipboard access. Open the Library and copy from there instead.");
