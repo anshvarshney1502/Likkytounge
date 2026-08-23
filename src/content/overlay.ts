@@ -8,7 +8,7 @@ import type { Settings } from "../shared/types";
 import type { GenerateProgress, UploadProgress } from "../context/types";
 import { generateContext } from "../context/generate";
 import { uploadContext } from "../context/upload";
-import { PIKACHU_SVG } from "./pikachu-icon";
+import { pikachuImgTag } from "./pikachu-icon";
 import { BOLT_SVG } from "./thunderbolt-icon";
 import overlayCss from "./overlay.css";
 
@@ -22,8 +22,7 @@ let panelTitleEl: HTMLElement | null = null;
 let stepsEl: HTMLElement | null = null;
 let resultEl: HTMLElement | null = null;
 let pikachuEl: HTMLElement | null = null;
-let boltsEl: HTMLElement | null = null;
-let flashEl: HTMLElement | null = null;
+let stageEl: HTMLElement | null = null;
 let settingsCache: Settings | null = null;
 
 async function getSettings(): Promise<Settings> {
@@ -60,6 +59,19 @@ function mount(): void {
         <span class="lk-emoji">⬆️</span>
         <span><strong>Upload Context</strong><span class="lk-menu-sub">Send the latest context here</span></span>
       </button>
+      <div class="lk-sep"></div>
+      <button type="button" data-action="copy" role="menuitem">
+        <span class="lk-emoji">📋</span>
+        <span><strong>Copy Context</strong><span class="lk-menu-sub">Copy the latest context to clipboard</span></span>
+      </button>
+      <button type="button" data-action="share" role="menuitem">
+        <span class="lk-emoji">📤</span>
+        <span><strong>Share Context</strong><span class="lk-menu-sub">Share the latest context</span></span>
+      </button>
+      <button type="button" data-action="library" role="menuitem">
+        <span class="lk-emoji">🗂️</span>
+        <span><strong>Open Library</strong><span class="lk-menu-sub">Browse every saved context</span></span>
+      </button>
     </div>
     <div class="lk-panel" id="lk-panel" role="status" aria-live="polite">
       <button class="lk-panel-close" id="lk-panel-close" aria-label="Close">✕</button>
@@ -68,18 +80,20 @@ function mount(): void {
       <div class="lk-result" id="lk-result" hidden></div>
     </div>
     <div class="lk-pikachu-wrap">
+      <div class="lk-stage" id="lk-stage">
+        <div class="lk-flash"></div>
+        <div class="lk-ring"></div>
+        <div class="lk-ring delay"></div>
+        <div class="lk-bolt">${BOLT_SVG}</div>
+        <div class="lk-bolt">${BOLT_SVG}</div>
+        <div class="lk-bolt">${BOLT_SVG}</div>
+        <div class="lk-bolt">${BOLT_SVG}</div>
+        <div class="lk-bolt">${BOLT_SVG}</div>
+        <div class="lk-bolt">${BOLT_SVG}</div>
+        <div class="lk-bolt">${BOLT_SVG}</div>
+      </div>
       <button class="lk-pikachu" id="lk-pikachu" aria-label="Open Likky Tounge menu" title="Generate or Upload context">
-        <div class="lk-flash" id="lk-flash"></div>
-        ${PIKACHU_SVG}
-        <div class="lk-bolts" id="lk-bolts">
-          <div class="lk-bolt">${BOLT_SVG}</div>
-          <div class="lk-bolt">${BOLT_SVG}</div>
-          <div class="lk-bolt">${BOLT_SVG}</div>
-          <div class="lk-bolt">${BOLT_SVG}</div>
-          <div class="lk-bolt">${BOLT_SVG}</div>
-          <div class="lk-bolt">${BOLT_SVG}</div>
-          <div class="lk-bolt">${BOLT_SVG}</div>
-        </div>
+        ${pikachuImgTag()}
       </button>
       <button class="lk-plus" id="lk-plus" aria-label="Open Likky Tounge menu" title="Generate or Upload context">+</button>
     </div>
@@ -92,8 +106,7 @@ function mount(): void {
   stepsEl = root.getElementById("lk-steps");
   resultEl = root.getElementById("lk-result");
   pikachuEl = root.getElementById("lk-pikachu");
-  boltsEl = root.getElementById("lk-bolts");
-  flashEl = root.getElementById("lk-flash");
+  stageEl = root.getElementById("lk-stage");
 
   // Clicking Pikachu or the + both just open the menu — neither one
   // auto-generates. Generate Context and Upload Context are only ever
@@ -111,8 +124,12 @@ function mount(): void {
     const btn = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-action]");
     if (!btn) return;
     closeMenu();
-    if (btn.dataset.action === "generate") void runGenerate();
-    else if (btn.dataset.action === "upload") void runUpload();
+    const action = btn.dataset.action;
+    if (action === "generate") void runGenerate();
+    else if (action === "upload") void runUpload();
+    else if (action === "copy") void runCopy();
+    else if (action === "share") void runShare();
+    else if (action === "library") void chrome.runtime.sendMessage({ type: "OPEN_LIBRARY" });
   });
 
   document.addEventListener("click", onOutsideClick, true);
@@ -123,7 +140,7 @@ function unmount(): void {
   document.getElementById(HOST_ID)?.remove();
   document.removeEventListener("click", onOutsideClick, true);
   document.removeEventListener("keydown", onGlobalKey, true);
-  root = rootEl = menuEl = panelEl = panelTitleEl = stepsEl = resultEl = pikachuEl = boltsEl = flashEl = null;
+  root = rootEl = menuEl = panelEl = panelTitleEl = stepsEl = resultEl = pikachuEl = stageEl = null;
 }
 
 function onOutsideClick(): void {
@@ -173,6 +190,27 @@ function openPanel(): void {
 }
 function closePanel(): void {
   panelEl?.classList.remove("open");
+}
+
+/**
+ * The 3D Thunderbolt discharge. Generate Context only — Upload Context must
+ * never call this. Classes are removed first and re-added on the next frame
+ * so repeated generates restart the animation instead of no-op'ing (a class
+ * that is already present does not retrigger a CSS animation).
+ */
+function playThunderbolt(): void {
+  if (!stageEl || !pikachuEl) return;
+  stageEl.classList.remove("active");
+  pikachuEl.classList.remove("burst");
+  void stageEl.offsetWidth; // force reflow so the removal is committed
+  requestAnimationFrame(() => {
+    stageEl?.classList.add("active");
+    pikachuEl?.classList.add("burst");
+  });
+  setTimeout(() => {
+    stageEl?.classList.remove("active");
+    pikachuEl?.classList.remove("burst");
+  }, 1100);
 }
 
 // ------------------------------------------------------------- progress --
@@ -227,14 +265,7 @@ async function runGenerate(): Promise<void> {
 
   if (result.success) {
     markAllDone(GENERATE_STAGES);
-    boltsEl!.classList.add("active");
-    flashEl!.classList.add("active");
-    pikachuEl!.classList.add("burst");
-    setTimeout(() => {
-      pikachuEl?.classList.remove("burst");
-      boltsEl?.classList.remove("active");
-      flashEl?.classList.remove("active");
-    }, 900);
+    playThunderbolt();
 
     const c = result.context;
     if (c.truncated) {
@@ -284,6 +315,87 @@ async function runUpload(): Promise<void> {
     }
   } else {
     showResult("err", `<strong>✕ Upload failed.</strong><br>${esc(result.reason)}`);
+  }
+}
+
+/** Fetch the latest saved context, or show why there isn't one. */
+async function requireLatestContext(): Promise<{ markdown: string; conversationTitle: string } | null> {
+  type MaybeCtx = { markdown?: string; conversationTitle?: string } | null;
+  let ctx: MaybeCtx = null;
+  try {
+    const res = await chrome.runtime.sendMessage({ type: "GET_LATEST_CONTEXT" });
+    if (res && typeof res === "object" && "error" in res) {
+      showResult("err", `<strong>✕ Could not read the latest context.</strong><br>${esc(String(res.error))}`);
+      return null;
+    }
+    ctx = res as MaybeCtx;
+  } catch (e) {
+    showResult("err", `<strong>✕ Could not read the latest context.</strong><br>${esc(e instanceof Error ? e.message : "Unknown error")}`);
+    return null;
+  }
+  if (!ctx || !ctx.markdown) {
+    showResult("err", "<strong>✕ No context yet.</strong><br>No generated context is available yet. Generate a context first.");
+    return null;
+  }
+  return { markdown: ctx.markdown, conversationTitle: ctx.conversationTitle ?? "Conversation context" };
+}
+
+async function runCopy(): Promise<void> {
+  openPanel();
+  panelTitleEl!.textContent = "📋 Copying context…";
+  resultEl!.hidden = true;
+  stepsEl!.innerHTML = "";
+  const ctx = await requireLatestContext();
+  if (!ctx) return;
+  try {
+    await navigator.clipboard.writeText(ctx.markdown);
+    showResult("ok", `<strong>✓ Context copied.</strong><br>“${esc(ctx.conversationTitle)}” is on your clipboard.`);
+    setTimeout(closePanel, 3000);
+  } catch {
+    showResult("err", "<strong>✕ Copy failed.</strong><br>This page blocked clipboard access. Open the Library and copy from there instead.");
+  }
+}
+
+async function runShare(): Promise<void> {
+  openPanel();
+  panelTitleEl!.textContent = "📤 Sharing context…";
+  resultEl!.hidden = true;
+  stepsEl!.innerHTML = "";
+  const ctx = await requireLatestContext();
+  if (!ctx) return;
+
+  const nav = navigator as Navigator & {
+    share?: (d: { title?: string; text?: string; files?: File[] }) => Promise<void>;
+    canShare?: (d: { files?: File[] }) => boolean;
+  };
+  try {
+    if (nav.share) {
+      // Prefer sharing the context as a real .md file when the platform
+      // supports file sharing; otherwise share the text itself.
+      const file = new File([ctx.markdown], `${ctx.conversationTitle}.md`, { type: "text/markdown" });
+      if (nav.canShare?.({ files: [file] })) {
+        await nav.share({ title: ctx.conversationTitle, files: [file] });
+      } else {
+        await nav.share({ title: ctx.conversationTitle, text: ctx.markdown });
+      }
+      showResult("ok", "<strong>✓ Shared.</strong>");
+      setTimeout(closePanel, 2500);
+      return;
+    }
+  } catch (e) {
+    if (e instanceof Error && e.name === "AbortError") {
+      closePanel();
+      return; // user dismissed the share sheet
+    }
+    // fall through to the clipboard fallback below
+  }
+  // No Web Share API on this page/OS — say so plainly and still leave the
+  // user with the content rather than a dead end.
+  try {
+    await navigator.clipboard.writeText(ctx.markdown);
+    showResult("warn", "<strong>Sharing isn't available in this browser.</strong><br>The context was copied to your clipboard instead.");
+  } catch {
+    showResult("err", "<strong>✕ Share unavailable.</strong><br>This browser has no share support and blocked clipboard access. Use the Library's Share/Export instead.");
   }
 }
 

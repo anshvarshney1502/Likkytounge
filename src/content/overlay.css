@@ -1,105 +1,144 @@
 :host, :host * { box-sizing: border-box; }
 
 .lk-root {
-  position: fixed; bottom: 24px; right: 24px; z-index: 2147483000;
+  position: fixed; bottom: 20px; right: 20px; z-index: 2147483000;
   font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   display: flex; flex-direction: column; align-items: flex-end; gap: 10px;
-  perspective: 600px;
 }
 
-/* ---------- Pikachu launcher ---------- */
-.lk-pikachu-wrap { position: relative; width: 88px; height: 88px; }
+/* ---------- Pikachu launcher ----------
+   The artwork is a "peeking" pose, so the launcher is presented as Pikachu
+   peeking up from the corner rather than being squeezed into a circle.
+   A 3D perspective wrapper gives the generate animation real depth. */
+.lk-pikachu-wrap {
+  position: relative; width: 132px; height: 82px;
+  perspective: 700px; perspective-origin: 50% 80%;
+}
 .lk-pikachu {
-  width: 88px; height: 88px; border-radius: 50%;
-  background: radial-gradient(circle at 35% 28%, #fff9e0, #ffe27a 50%, #ffca1f 100%);
-  border: 3px solid #f0b90b;
-  box-shadow: 0 8px 22px rgba(240, 185, 11, .4), inset 0 -6px 10px rgba(180, 120, 0, .18), inset 0 4px 8px rgba(255,255,255,.6);
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  padding: 9px; transition: transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .18s ease;
-  transform-style: preserve-3d;
+  position: relative; width: 100%; height: 100%;
+  border: none; background: transparent; padding: 0; cursor: pointer;
+  display: block; transform-style: preserve-3d;
+  transition: transform .22s cubic-bezier(.34, 1.56, .64, 1);
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, .28));
 }
-.lk-pikachu svg { width: 100%; height: 100%; filter: drop-shadow(0 2px 3px rgba(0,0,0,.15)); }
-.lk-pikachu:hover { transform: scale(1.08) rotate(-3deg); box-shadow: 0 10px 28px rgba(240, 185, 11, .55), inset 0 -6px 10px rgba(180, 120, 0, .18), inset 0 4px 8px rgba(255,255,255,.6); }
-.lk-pikachu:active { transform: scale(0.95); }
-.lk-pikachu:focus-visible { outline: 3px solid #4f46e5; outline-offset: 3px; }
+.lk-pika-img {
+  width: 100%; height: 100%; object-fit: contain; object-position: bottom center;
+  display: block; pointer-events: none; user-select: none;
+}
+.lk-pikachu:hover { transform: translateY(-7px) rotateX(8deg); }
+.lk-pikachu:active { transform: translateY(-2px) scale(.97); }
+.lk-pikachu:focus-visible { outline: 3px solid #4f46e5; outline-offset: 4px; border-radius: 10px; }
 
-.lk-pikachu.charging { animation: lk-charge 0.8s cubic-bezier(.45,0,.55,1) infinite; }
-.lk-pikachu.burst { animation: lk-burst 0.85s cubic-bezier(.22,1,.36,1); }
-.lk-pikachu.shake { animation: lk-shake 0.5s ease-in-out; }
-
+/* Charging: Pikachu rocks in 3D while the context is being captured. */
+.lk-pikachu.charging { animation: lk-charge 1.05s cubic-bezier(.45, 0, .55, 1) infinite; }
 @keyframes lk-charge {
-  0%, 100% { transform: scale(1) rotate3d(0,1,0,0deg); box-shadow: 0 8px 22px rgba(240,185,11,.4), inset 0 -6px 10px rgba(180,120,0,.18), inset 0 4px 8px rgba(255,255,255,.6); }
-  50% { transform: scale(1.06) rotate3d(0,1,0,8deg); box-shadow: 0 0 0 14px rgba(255,225,77,.22), 0 10px 30px rgba(240,185,11,.65), inset 0 -6px 10px rgba(180,120,0,.18), inset 0 4px 8px rgba(255,255,255,.6); }
+  0%, 100% { transform: translateY(0) rotateX(0deg) rotateY(0deg) scale(1); }
+  25% { transform: translateY(-5px) rotateX(7deg) rotateY(-7deg) scale(1.02); }
+  50% { transform: translateY(-8px) rotateX(10deg) rotateY(0deg) scale(1.04); }
+  75% { transform: translateY(-5px) rotateX(7deg) rotateY(7deg) scale(1.02); }
 }
+
+/* Burst: a bigger 3D lunge toward the viewer when capture succeeds. */
+.lk-pikachu.burst { animation: lk-burst 1s cubic-bezier(.22, 1, .36, 1); }
 @keyframes lk-burst {
-  0% { transform: scale(1) rotate3d(1,1,0,0deg); }
-  30% { transform: scale(1.32) rotate3d(1,1,0,10deg); box-shadow: 0 0 0 22px rgba(255,225,77,.32), 0 16px 40px rgba(240,185,11,.75), inset 0 -6px 10px rgba(180,120,0,.18), inset 0 4px 8px rgba(255,255,255,.6); }
-  60% { transform: scale(0.96) rotate3d(1,1,0,-4deg); }
-  100% { transform: scale(1) rotate3d(0,0,0,0deg); }
+  0% { transform: translateY(0) rotateX(0) scale(1); }
+  18% { transform: translateY(6px) rotateX(-10deg) scale(.94); }
+  45% { transform: translateY(-26px) rotateX(16deg) scale(1.22); }
+  70% { transform: translateY(-6px) rotateX(6deg) scale(1.03); }
+  100% { transform: translateY(0) rotateX(0) scale(1); }
 }
+
+.lk-pikachu.shake { animation: lk-shake .5s ease-in-out; }
 @keyframes lk-shake {
-  0%, 100% { transform: translateX(0) rotate(0); }
-  20% { transform: translateX(-5px) rotate(-4deg); }
-  40% { transform: translateX(5px) rotate(4deg); }
-  60% { transform: translateX(-4px) rotate(-2deg); }
-  80% { transform: translateX(4px) rotate(2deg); }
+  0%, 100% { transform: translateX(0) rotateZ(0); }
+  20% { transform: translateX(-6px) rotateZ(-4deg); }
+  40% { transform: translateX(6px) rotateZ(4deg); }
+  60% { transform: translateX(-4px) rotateZ(-2deg); }
+  80% { transform: translateX(4px) rotateZ(2deg); }
 }
 
-/* Thunderbolt burst: a screen-space flash plus several bolt glyphs radiating
-   out with a slight 3D rotation, only during Generate. */
+/* ---------- Thunderbolt stage (3D) ----------
+   Sits behind Pikachu, shares the same perspective, and pushes elements
+   toward the viewer along Z so the discharge reads as volumetric rather
+   than a flat sprite fan. Generate Context only — never Upload. */
+.lk-stage {
+  position: absolute; inset: -70px -40px -30px -40px;
+  pointer-events: none; transform-style: preserve-3d; opacity: 0;
+}
+.lk-stage.active { opacity: 1; }
+
+/* Expanding electric shockwave ring. */
+.lk-ring {
+  position: absolute; left: 50%; top: 62%; width: 90px; height: 90px;
+  margin: -45px 0 0 -45px; border-radius: 50%;
+  border: 3px solid rgba(255, 226, 122, .95);
+  box-shadow: 0 0 26px rgba(255, 208, 61, .85), inset 0 0 20px rgba(255, 226, 122, .55);
+  transform: translateZ(0) scale(.2); opacity: 0;
+}
+.lk-stage.active .lk-ring { animation: lk-ring-out .95s cubic-bezier(.16, 1, .3, 1) forwards; }
+.lk-stage.active .lk-ring.delay { animation-delay: .16s; }
+@keyframes lk-ring-out {
+  0% { transform: translateZ(-60px) scale(.2) rotateX(62deg); opacity: 0; }
+  22% { opacity: 1; }
+  100% { transform: translateZ(90px) scale(2.5) rotateX(62deg); opacity: 0; }
+}
+
+/* Core flash. */
 .lk-flash {
-  position: absolute; inset: -40px; border-radius: 50%; pointer-events: none;
-  background: radial-gradient(circle, rgba(255,236,140,.85), rgba(255,202,31,.35) 45%, transparent 72%);
-  opacity: 0; transform: scale(0.4);
+  position: absolute; left: 50%; top: 58%; width: 150px; height: 150px;
+  margin: -75px 0 0 -75px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 248, 200, .95), rgba(255, 206, 51, .45) 42%, transparent 70%);
+  transform: scale(.3); opacity: 0;
 }
-.lk-flash.active { animation: lk-flash-pop 0.6s cubic-bezier(.22,1,.36,1); }
+.lk-stage.active .lk-flash { animation: lk-flash-pop .7s cubic-bezier(.22, 1, .36, 1) forwards; }
 @keyframes lk-flash-pop {
-  0% { opacity: 0; transform: scale(0.4); }
-  30% { opacity: 1; transform: scale(1.15); }
-  100% { opacity: 0; transform: scale(1.6); }
+  0% { opacity: 0; transform: scale(.3); }
+  26% { opacity: 1; transform: scale(1.1); }
+  100% { opacity: 0; transform: scale(1.8); }
 }
 
-.lk-bolts { position: absolute; inset: -46px; pointer-events: none; opacity: 0; }
-.lk-bolts.active { opacity: 1; }
+/* Bolts fly outward *and* toward the viewer in 3D. */
 .lk-bolt {
-  position: absolute; width: 30px; height: 30px; top: 50%; left: 50%;
-  transform: translate(-50%, -50%) scale(0);
-  filter: drop-shadow(0 0 6px rgba(255, 225, 77, .95)) drop-shadow(0 2px 3px rgba(0,0,0,.25));
+  position: absolute; left: 50%; top: 58%; width: 34px; height: 34px;
+  margin: -17px 0 0 -17px;
+  transform: translate3d(0, 0, 0) scale(0);
+  filter: drop-shadow(0 0 8px rgba(255, 226, 122, .95));
 }
-.lk-bolts.active .lk-bolt { animation: lk-bolt-fly 0.85s cubic-bezier(.22,1,.36,1) forwards; }
-.lk-bolt:nth-child(1) { animation-delay: 0ms;   --tx: -64px; --ty: -46px; --rot: -30deg; }
-.lk-bolt:nth-child(2) { animation-delay: 50ms;  --tx: 64px;  --ty: -46px; --rot: 25deg; }
-.lk-bolt:nth-child(3) { animation-delay: 100ms; --tx: -70px; --ty: 28px;  --rot: -12deg; }
-.lk-bolt:nth-child(4) { animation-delay: 150ms; --tx: 70px;  --ty: 28px;  --rot: 18deg; }
-.lk-bolt:nth-child(5) { animation-delay: 70ms;  --tx: 0px;   --ty: -78px; --rot: 0deg; }
-.lk-bolt:nth-child(6) { animation-delay: 120ms; --tx: -30px; --ty: 66px;  --rot: -18deg; }
-.lk-bolt:nth-child(7) { animation-delay: 40ms;  --tx: 30px;  --ty: 66px;  --rot: 14deg; }
+.lk-bolt svg { width: 100%; height: 100%; display: block; }
+.lk-stage.active .lk-bolt { animation: lk-bolt-fly .95s cubic-bezier(.16, 1, .3, 1) forwards; }
+.lk-bolt:nth-child(3)  { --tx: -86px; --ty: -58px; --tz: 120px; --rot: -34deg; animation-delay: 0ms; }
+.lk-bolt:nth-child(4)  { --tx:  86px; --ty: -58px; --tz: 110px; --rot:  30deg; animation-delay: 55ms; }
+.lk-bolt:nth-child(5)  { --tx: -104px; --ty:  16px; --tz:  70px; --rot: -14deg; animation-delay: 110ms; }
+.lk-bolt:nth-child(6)  { --tx:  104px; --ty:  16px; --tz:  70px; --rot:  18deg; animation-delay: 150ms; }
+.lk-bolt:nth-child(7)  { --tx:   0px; --ty: -104px; --tz: 150px; --rot:   0deg; animation-delay: 78ms; }
+.lk-bolt:nth-child(8)  { --tx: -48px; --ty: -92px; --tz:  95px; --rot: -22deg; animation-delay: 130ms; }
+.lk-bolt:nth-child(9)  { --tx:  48px; --ty: -92px; --tz:  95px; --rot:  22deg; animation-delay: 34ms; }
 @keyframes lk-bolt-fly {
-  0% { transform: translate(-50%, -50%) scale(0) rotate(0deg); opacity: 0; }
-  18% { opacity: 1; transform: translate(-50%, -50%) scale(1.15) rotate(calc(var(--rot) * 0.3)); }
+  0% { transform: translate3d(0, 0, -40px) scale(0) rotate(0deg); opacity: 0; }
+  16% { opacity: 1; transform: translate3d(0, 0, 20px) scale(1.25) rotate(calc(var(--rot) * .3)); }
   100% {
-    transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0.7) rotate(var(--rot));
+    transform: translate3d(var(--tx), var(--ty), var(--tz)) scale(.55) rotate(var(--rot));
     opacity: 0;
   }
 }
 
 /* ---------- + button ---------- */
 .lk-plus {
-  position: absolute; bottom: -2px; right: -2px; width: 30px; height: 30px;
-  border-radius: 50%; background: #4f46e5; color: #fff; border: 3px solid var(--lk-bg, #fff);
+  position: absolute; bottom: 2px; right: -2px; width: 30px; height: 30px;
+  border-radius: 50%; background: #4f46e5; color: #fff; border: 3px solid #fff;
   font: 700 18px/1 system-ui, sans-serif; cursor: pointer;
   display: flex; align-items: center; justify-content: center; padding: 0;
-  box-shadow: 0 2px 8px rgba(0,0,0,.25);
-  transition: transform .15s cubic-bezier(.34,1.56,.64,1), background .15s ease;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .3); z-index: 2;
+  transition: transform .15s cubic-bezier(.34, 1.56, .64, 1), background .15s ease;
 }
-.lk-plus:hover { background: #4338ca; transform: scale(1.1); }
+.lk-plus:hover { background: #4338ca; transform: scale(1.12); }
 .lk-plus:focus-visible { outline: 2px solid #4f46e5; outline-offset: 2px; }
 
 /* ---------- menu ---------- */
 .lk-menu {
-  display: none; flex-direction: column; gap: 6px;
+  display: none; flex-direction: column; gap: 4px;
   background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
-  padding: 8px; box-shadow: 0 12px 34px rgba(0,0,0,.2); min-width: 220px;
+  padding: 8px; box-shadow: 0 12px 34px rgba(0, 0, 0, .2); min-width: 232px;
 }
 .lk-menu.open { display: flex; }
 .lk-menu button {
@@ -108,15 +147,16 @@
   background: transparent; cursor: pointer; font: inherit; color: #1a1a2e;
 }
 .lk-menu button:hover { background: #f9fafb; border-color: #e5e7eb; }
-.lk-menu button .lk-emoji { font-size: 18px; width: 22px; text-align: center; }
+.lk-menu button .lk-emoji { font-size: 17px; width: 22px; text-align: center; flex-shrink: 0; }
 .lk-menu button .lk-menu-sub { display: block; font-size: 11px; color: #6b7280; font-weight: 400; }
 .lk-menu button strong { font-size: 13px; }
+.lk-menu .lk-sep { height: 1px; background: #e5e7eb; margin: 4px 2px; }
 
 /* ---------- progress / status panel ---------- */
 .lk-panel {
   display: none; flex-direction: column; gap: 8px;
   background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
-  padding: 12px 14px; box-shadow: 0 12px 34px rgba(0,0,0,.2); width: 280px;
+  padding: 12px 14px; box-shadow: 0 12px 34px rgba(0, 0, 0, .2); width: 288px;
 }
 .lk-panel.open { display: flex; }
 .lk-panel-title { font-weight: 700; font-size: 13px; color: #4f46e5; display: flex; align-items: center; gap: 6px; }
@@ -125,19 +165,22 @@
 .lk-steps li.active { color: #1a1a2e; font-weight: 600; }
 .lk-steps li.ok { color: #16a34a; }
 .lk-result { font-size: 13px; border-radius: 8px; padding: 8px 10px; }
-.lk-result.ok { background: rgba(22,163,74,.08); color: #166534; border: 1px solid rgba(22,163,74,.3); }
-.lk-result.err { background: rgba(220,38,38,.08); color: #991b1b; border: 1px solid rgba(220,38,38,.3); }
-.lk-result.warn { background: rgba(180,83,9,.08); color: #92400e; border: 1px solid rgba(180,83,9,.3); }
+.lk-result.ok { background: rgba(22, 163, 74, .08); color: #166534; border: 1px solid rgba(22, 163, 74, .3); }
+.lk-result.err { background: rgba(220, 38, 38, .08); color: #991b1b; border: 1px solid rgba(220, 38, 38, .3); }
+.lk-result.warn { background: rgba(180, 83, 9, .08); color: #92400e; border: 1px solid rgba(180, 83, 9, .3); }
 .lk-panel-close { align-self: flex-end; background: none; border: none; color: #6b7280; cursor: pointer; font-size: 12px; padding: 2px 4px; }
 
 @media (prefers-color-scheme: dark) {
   .lk-menu, .lk-panel { background: #1c1e26; border-color: #2a2c34; }
   .lk-menu button { color: #e6e7eb; }
   .lk-menu button:hover { background: #23252e; border-color: #2a2c34; }
+  .lk-menu .lk-sep { background: #2a2c34; }
   .lk-steps li.active { color: #e6e7eb; }
   .lk-plus { border-color: #14151a; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .lk-pikachu, .lk-plus, .lk-flash, .lk-bolt { animation: none !important; transition: none !important; }
+  .lk-pikachu, .lk-plus, .lk-flash, .lk-bolt, .lk-ring {
+    animation: none !important; transition: none !important;
+  }
 }

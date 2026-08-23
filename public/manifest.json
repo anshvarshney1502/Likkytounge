@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Likky Tounge",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "Pikachu captures your whole AI conversation and carries it to any other supported LLM with one click. Privacy-first, open source, 100% local.",
   "action": {
     "default_popup": "popup.html",
@@ -35,6 +35,18 @@
       ],
       "js": ["content.js"],
       "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["pikachu.png"],
+      "matches": [
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*",
+        "https://claude.ai/*",
+        "https://gemini.google.com/*",
+        "https://chat.deepseek.com/*"
+      ]
     }
   ],
   "icons": {

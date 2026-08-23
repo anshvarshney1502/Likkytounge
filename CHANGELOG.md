@@ -12,6 +12,73 @@ semantic versioning once it reaches 1.0.
 - Per-context version history (currently only the single "latest" pointer is tracked; every generation is kept, but not edited-in-place history of the same context).
 - Real text extraction from generated file attachments (PDF/PPT/DOCX) — currently out of scope to keep the extension dependency-free; only filenames/links and any artifact-panel text already visible in the page are captured.
 
+## [0.5.3] — 2026-08-23
+
+### Fixed — Upload Context freezing the page (real root cause this time)
+0.5.2 misdiagnosed this. That release *raised* the per-insert chunk size to
+60,000 characters on the theory that fewer, larger operations would be
+faster — which made the freeze worse, because the cost was never the number
+of operations, it was the size of each one.
+
+Every supported site backs its chat box with a rich-text editor
+(ProseMirror / Lexical / Slate). `document.execCommand('insertText', …)`
+goes through that editor's **typing** path, which does roughly
+per-character work and blocks the main thread synchronously. Handing it a
+60 KB string in a single call is what locked the tab for 7–10 seconds and
+tripped Chrome's "page unresponsive" dialog — and because the main thread
+was blocked, the extension's own progress panel could not even repaint,
+which is why it appeared frozen on an early step.
+
+The fix routes insertion through the editor's **bulk** path instead:
+- A synthetic `paste` event carrying a `DataTransfer` payload. Rich editors
+  implement paste specifically to ingest a whole clipboard blob at once, so
+  the entire context now transfers in **one** operation with **zero**
+  blocking `insertText` calls. Verified by test: 120,000 characters → 1
+  operation, 0 `insertText` calls.
+- `<textarea>`/`<input>` keep using the native value setter (already O(n)).
+- Only if an editor ignores the synthetic paste does it fall back to
+  `insertText` — and then in **4,000**-character chunks (down from 60,000)
+  with a yield between every chunk.
+- A wall-clock budget aborts a pathologically slow editor into an honest
+  partial result rather than an indefinitely hung page.
+
+### Changed — Pikachu artwork and a real 3D Thunderbolt
+- Replaced the placeholder inline SVG with the supplied 3D render. The
+  source art had its "transparency" checkerboard **painted into the pixels**
+  (its alpha channel was fully opaque), so a new dependency-free
+  `scripts/make-pikachu.mjs` decodes the PNG with `node:zlib`, flood-fills
+  the checkerboard away *inward from the border* (which preserves the white
+  eye highlights, since those are not edge-connected), removes the
+  full-width ledge bar, crops to the alpha bounding box, and downscales in
+  premultiplied alpha. No image dependency added.
+- The launcher now presents Pikachu **peeking** out of the corner — matching
+  what the art actually depicts — instead of squeezing a wide image into a
+  circle, and is substantially larger (132×82 vs. a 56 px circle).
+- The Thunderbolt is now genuinely 3D: a `perspective` stage renders an
+  expanding shockwave ring in Z, a core flash, and seven bolts that travel
+  outward *and* toward the viewer via `translate3d`, while Pikachu lunges
+  with `rotateX`/`rotateY`. Retriggering is handled correctly (classes are
+  cleared and re-applied across a frame) so repeated generates always
+  replay. Still Generate Context only — never Upload.
+
+### Added — Share reachable from the page
+Share/Copy previously existed only inside the full Context Library, so
+there was no way to share from the page you were actually on. The on-page
+menu now carries **Copy Context**, **Share Context**, and **Open Library**
+alongside Generate/Upload. Share uses the Web Share API (sharing a real
+`.md` file where the platform supports files, otherwise the text) and, when
+the browser has no share support, says so plainly and copies the context
+instead rather than failing silently.
+
+### Notes
+- 6 new tests pin the performance fix itself — including asserting that a
+  large payload produces exactly one operation and no blocking
+  `insertText` calls, and that the fallback path never exceeds 4,000
+  characters per synchronous call or drops characters.
+- jsdom implements neither `DataTransfer` nor `ClipboardEvent`, so minimal
+  stand-ins were added to the test setup; without them the paste path
+  cannot be exercised at all under test.
+
 ## [0.5.2] — 2026-08-23
 
 ### Fixed — Upload Context freezing the tab for several seconds

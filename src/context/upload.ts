@@ -5,26 +5,14 @@
 
 import type { LatestContext, UploadResult, UploadProgress } from "./types";
 import { detectPlatform } from "./extract/platforms";
-import { insertIntoInput } from "../content/insert";
+import { insertLargeText, getInputLength } from "../content/insert";
 
-// Larger than before on purpose: each execCommand('insertText', …) call into
-// a React-controlled editor (ChatGPT/Claude/Gemini all use one) is expensive
-// — it triggers the framework's synchronous input/state-sync cycle. Doing
-// several of those back-to-back with no yield between them is what froze the
-// tab for several seconds on large contexts. Fewer, larger calls plus an
-// explicit yield between them (see uploadContext below) fixes both: most
-// real conversations now fit in a single call, and when chunking is still
-// needed the browser gets a chance to paint/process between each one so the
-// page never looks unresponsive.
-const MAX_CHUNK_CHARS = 60_000;
-
-/** Yield to the browser (paint + pending work) before the next heavy insert. */
-function yieldToBrowser(): Promise<void> {
-  return new Promise((resolve) => {
-    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-  });
-}
-
+/**
+ * Kept exported for tests and for callers that want to pre-split a payload.
+ * The upload path itself no longer chunks up front — `insertLargeText`
+ * sends the whole payload through the editor's bulk paste path in one go
+ * and only falls back to (small, yielded) chunks if that is refused.
+ */
 export function splitIntoChunks(text: string, maxChars: number): string[] {
   if (text.length <= maxChars) return [text];
   const chunks: string[] = [];
@@ -32,7 +20,6 @@ export function splitIntoChunks(text: string, maxChars: number): string[] {
   while (start < text.length) {
     let end = Math.min(start + maxChars, text.length);
     if (end < text.length) {
-      // Prefer to break on a paragraph boundary so messages aren't split mid-sentence.
       const lastBreak = text.lastIndexOf("\n\n", end);
       if (lastBreak > start + maxChars * 0.5) end = lastBreak;
     }
@@ -40,11 +27,6 @@ export function splitIntoChunks(text: string, maxChars: number): string[] {
     start = end;
   }
   return chunks;
-}
-
-function getInputLength(el: HTMLElement): number {
-  if (el instanceof HTMLTextAreaElement || el instanceof HTMLInputElement) return el.value.length;
-  return (el.textContent ?? "").length;
 }
 
 export async function uploadContext(
@@ -80,26 +62,21 @@ export async function uploadContext(
     return { success: false, reason: `Could not find a compatible input on ${platform.label}. The page layout may have changed.` };
   }
 
+  onProgress({ stage: "transfer", label: "Transferring context…" });
   const baseline = getInputLength(input);
-  const chunks = splitIntoChunks(context.markdown, MAX_CHUNK_CHARS);
 
-  let ok = true;
-  for (let i = 0; i < chunks.length; i++) {
-    onProgress({
-      stage: "transfer",
-      label: chunks.length > 1 ? `Transferring context… (${i + 1}/${chunks.length})` : "Transferring context…",
-    });
-    // Let the browser paint/process the previous insertion before the next
-    // heavy one — this is what keeps the tab responsive on large contexts
-    // instead of freezing through several back-to-back synchronous inserts.
-    if (i > 0) await yieldToBrowser();
-    const mode = i === 0 ? insertMode : "append";
-    const success = insertIntoInput(input, chunks[i], mode);
-    if (!success) ok = false;
-  }
+  const result = await insertLargeText(input, context.markdown, {
+    mode: insertMode,
+    budgetMs: 15_000,
+    onProgress: (done, total) => {
+      if (total > 1) {
+        onProgress({ stage: "transfer", label: `Transferring context… (${done}/${total})` });
+      }
+    },
+  });
 
-  if (!ok) {
-    return { success: false, reason: "The destination editor rejected the automatic transfer." };
+  if (!result.ok) {
+    return { success: false, reason: result.abortedReason ?? "The destination editor rejected the automatic transfer." };
   }
 
   // Verify: did the input actually grow by roughly the expected amount?
@@ -110,15 +87,25 @@ export async function uploadContext(
 
   onProgress({ stage: "done", label: "Context transferred" });
 
+  if (result.abortedReason) {
+    return {
+      success: true,
+      platformLabel: platform.label,
+      chunks: result.operations,
+      partial: true,
+      partialReason: result.abortedReason,
+    };
+  }
+
   if (ratio < 0.85) {
     return {
       success: true,
       platformLabel: platform.label,
-      chunks: chunks.length,
+      chunks: result.operations,
       partial: true,
       partialReason: `Only part of the context appears to have been inserted (~${Math.round(ratio * 100)}%). ${platform.label}'s input may have a size limit.`,
     };
   }
 
-  return { success: true, platformLabel: platform.label, chunks: chunks.length };
+  return { success: true, platformLabel: platform.label, chunks: result.operations };
 }
