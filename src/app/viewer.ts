@@ -1,11 +1,13 @@
 import type { SavedContext } from "../context/store";
 import type { ExportFormat } from "../export/archive";
 import { splitConversationMarkdown } from "../export/markdown-render";
-import { markdownToPlaintext } from "../export/to-plaintext";
 import { exportContext } from "../export/archive";
 import { downloadBlob } from "../shared/download";
 import { esc, timeAgo, fmtBytes } from "./util";
 import { showToast } from "./toast";
+import { copyContext, shareContext } from "./share";
+
+export { copyContext, shareContext };
 
 const ROLE_LABEL: Record<string, string> = { user: "User", assistant: "Assistant", system: "System" };
 
@@ -13,43 +15,6 @@ export interface ViewerHandlers {
   onBack(): void;
   onRenamed(id: string, title: string): void;
   onDeleted(id: string): void;
-}
-
-export async function shareContext(ctx: SavedContext): Promise<void> {
-  const nav = navigator as Navigator & {
-    canShare?: (data: { files?: File[] }) => boolean;
-    share?: (data: { title?: string; text?: string; files?: File[] }) => Promise<void>;
-  };
-  try {
-    if (nav.share && nav.canShare) {
-      const file = new File([ctx.markdown], `${ctx.title}.md`, { type: "text/markdown" });
-      if (nav.canShare({ files: [file] })) {
-        await nav.share({ title: ctx.title, files: [file] });
-        showToast("Shared.");
-        return;
-      }
-    }
-    if (nav.share) {
-      const preview = markdownToPlaintext(ctx.markdown).slice(0, 1800);
-      await nav.share({ title: ctx.title, text: preview });
-      showToast("Shared.");
-      return;
-    }
-  } catch (e) {
-    if (e instanceof Error && e.name === "AbortError") return; // user cancelled
-    /* fall through to clipboard fallback */
-  }
-  await navigator.clipboard.writeText(markdownToPlaintext(ctx.markdown));
-  showToast("Sharing isn't available here — copied the context instead.");
-}
-
-export async function copyContext(ctx: SavedContext): Promise<void> {
-  try {
-    await navigator.clipboard.writeText(markdownToPlaintext(ctx.markdown));
-    showToast("Context copied successfully.");
-  } catch {
-    showToast("Couldn't copy — clipboard access was denied.", true);
-  }
 }
 
 async function doExport(ctx: SavedContext, format: ExportFormat): Promise<void> {

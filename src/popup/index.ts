@@ -1,5 +1,7 @@
 import type { Settings } from "../shared/types";
 import { applyTheme, applyDensity } from "../shared/theme";
+import { getContext } from "../context/store";
+import { copyContext, shareContext } from "../app/share";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -50,6 +52,17 @@ async function init(): Promise<void> {
   $("lc-meta").textContent = `${latest.platformLabel} · Generated ${timeAgo(latest.capturedAt)}`;
   $("last-context").addEventListener("click", () => openApp(`#/context/${latest.id}`));
   $("last-context").style.cursor = "pointer";
+
+  $("lc-copy").addEventListener("click", async (e) => {
+    e.stopPropagation();
+    const ctx = await getContext(latest.id);
+    if (ctx) await copyContext(ctx);
+  });
+  $("lc-share").addEventListener("click", async (e) => {
+    e.stopPropagation();
+    const ctx = await getContext(latest.id);
+    if (ctx) await shareContext(ctx);
+  });
 }
 
 void init();

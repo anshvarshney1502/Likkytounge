@@ -12,6 +12,73 @@ semantic versioning once it reaches 1.0.
 - Per-context version history (currently only the single "latest" pointer is tracked; every generation is kept, but not edited-in-place history of the same context).
 - Real text extraction from generated file attachments (PDF/PPT/DOCX) — currently out of scope to keep the extension dependency-free; only filenames/links and any artifact-panel text already visible in the page are captured.
 
+## [0.5.2] — 2026-08-23
+
+### Fixed — Upload Context freezing the tab for several seconds
+`upload.ts` inserted every chunk of a large context into the destination
+input in a tight synchronous loop with no yield to the browser between
+calls. Each `execCommand('insertText', …)` into a React-controlled editor
+(ChatGPT/Claude/Gemini/DeepSeek all use one) is itself expensive — it drives
+the framework's synchronous input/state-sync cycle — and stacking several of
+those back-to-back with nothing in between is what froze the tab for 7–10
+seconds and sometimes triggered Chrome's "page unresponsive" prompt.
+- Raised the per-chunk size (20,000 → 60,000 chars) so most real
+  conversations now transfer in a single call instead of several.
+- When chunking is still needed for very large contexts, the loop now
+  `await`s a double `requestAnimationFrame` between chunks so the browser
+  gets to paint/process before the next heavy insert — the page stays
+  responsive instead of freezing through the whole transfer.
+- Progress now reports "(2/4)" etc. per chunk instead of a single static
+  "Transferring…" label, so the extension's own panel doesn't look stalled
+  either.
+
+### Changed — interaction model
+Per explicit request: **clicking Pikachu no longer auto-runs Generate
+Context.** Both Pikachu and the `+` button now open the same
+Generate/Upload menu — actions only ever fire from an explicit menu choice.
+
+### Changed — Pikachu look and feel
+- Enlarged the launcher (56px → 88px) and gave the placeholder artwork
+  actual shading/gradients instead of flat circles (still a placeholder
+  pending the real provided image — see Planned).
+- Reworked the Thunderbolt animation: a radial screen-flash plus 7
+  (was 5) bolts on a smoother, longer, `cubic-bezier` easing with a subtle
+  3D tilt (`rotate3d`) on the charging/burst states, only ever on Generate
+  Context — Upload Context still never triggers it.
+
+### Changed — conversation structure
+Per explicit request that generated contexts "read like the actual chat":
+- **Markdown** (`context/markdown.ts`): the conversation's own title is now
+  the document heading; turns are labeled `**You**` / `**{PlatformLabel}**`
+  (e.g. `**ChatGPT**`, `**Claude**`) instead of generic `## User` / `##
+  Assistant` headings, with a rule between turns — closer to a real chat
+  transcript than a documentation-style block of headings.
+- Turn boundaries are marked with an invisible `<!-- lk-turn:role -->`
+  comment immediately before each label, so the app's own parser
+  (`export/markdown-render.ts`, used by the Context Viewer and HTML export)
+  can split turns unambiguously — a bold-label-alone heuristic would
+  misfire if a message legitimately contained a standalone bolded line
+  like "**Note:**". Covered by a regression test for exactly that case.
+- **Plain text export** (`export/to-plaintext.ts`) rewritten to use the
+  same markers: a divider + `SPEAKER` line per turn instead of a generic
+  strip-all-markdown pass, so `.txt` reads as a labeled chat log too.
+- HTML export inherits the fix automatically (it's built from the same
+  parser).
+
+### Added
+- **Share and Copy in the popup**, not just the full Context Viewer — the
+  "latest context" card now has both, backed by a new small `app/share.ts`
+  module so the popup doesn't have to bundle the Export menu's heavier
+  zip/archive dependencies just to get Copy/Share.
+- 10 new tests: chunk-splitting-adjacent upload behavior, the standalone-
+  bold-line ambiguity case, paragraph-break preservation across the new
+  parser, and the plain-text transcript format.
+
+Generate/Upload logic, the Pikachu launcher, and the Thunderbolt animation
+were modified in this release at the user's explicit request (previously
+treated as protected during the UI redesign in 0.5.0) — `insert.ts`,
+`content/index.ts`, and `context/extract/` were not touched.
+
 ## [0.5.1] — 2026-08-23
 
 ### Fixed

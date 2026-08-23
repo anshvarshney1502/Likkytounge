@@ -23,6 +23,7 @@ let stepsEl: HTMLElement | null = null;
 let resultEl: HTMLElement | null = null;
 let pikachuEl: HTMLElement | null = null;
 let boltsEl: HTMLElement | null = null;
+let flashEl: HTMLElement | null = null;
 let settingsCache: Settings | null = null;
 
 async function getSettings(): Promise<Settings> {
@@ -67,9 +68,12 @@ function mount(): void {
       <div class="lk-result" id="lk-result" hidden></div>
     </div>
     <div class="lk-pikachu-wrap">
-      <button class="lk-pikachu" id="lk-pikachu" aria-label="Likky Tounge: click to Generate Context, or use + for more options" title="Generate Context">
+      <button class="lk-pikachu" id="lk-pikachu" aria-label="Open Likky Tounge menu" title="Generate or Upload context">
+        <div class="lk-flash" id="lk-flash"></div>
         ${PIKACHU_SVG}
         <div class="lk-bolts" id="lk-bolts">
+          <div class="lk-bolt">${BOLT_SVG}</div>
+          <div class="lk-bolt">${BOLT_SVG}</div>
           <div class="lk-bolt">${BOLT_SVG}</div>
           <div class="lk-bolt">${BOLT_SVG}</div>
           <div class="lk-bolt">${BOLT_SVG}</div>
@@ -89,10 +93,14 @@ function mount(): void {
   resultEl = root.getElementById("lk-result");
   pikachuEl = root.getElementById("lk-pikachu");
   boltsEl = root.getElementById("lk-bolts");
+  flashEl = root.getElementById("lk-flash");
 
-  pikachuEl!.addEventListener("click", () => {
-    closeMenu();
-    void runGenerate();
+  // Clicking Pikachu or the + both just open the menu — neither one
+  // auto-generates. Generate Context and Upload Context are only ever
+  // triggered explicitly from the menu below.
+  pikachuEl!.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleMenu();
   });
   root.getElementById("lk-plus")!.addEventListener("click", (e) => {
     e.stopPropagation();
@@ -115,7 +123,7 @@ function unmount(): void {
   document.getElementById(HOST_ID)?.remove();
   document.removeEventListener("click", onOutsideClick, true);
   document.removeEventListener("keydown", onGlobalKey, true);
-  root = rootEl = menuEl = panelEl = panelTitleEl = stepsEl = resultEl = pikachuEl = boltsEl = null;
+  root = rootEl = menuEl = panelEl = panelTitleEl = stepsEl = resultEl = pikachuEl = boltsEl = flashEl = null;
 }
 
 function onOutsideClick(): void {
@@ -220,11 +228,13 @@ async function runGenerate(): Promise<void> {
   if (result.success) {
     markAllDone(GENERATE_STAGES);
     boltsEl!.classList.add("active");
+    flashEl!.classList.add("active");
     pikachuEl!.classList.add("burst");
     setTimeout(() => {
       pikachuEl?.classList.remove("burst");
       boltsEl?.classList.remove("active");
-    }, 700);
+      flashEl?.classList.remove("active");
+    }, 900);
 
     const c = result.context;
     if (c.truncated) {

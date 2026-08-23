@@ -4,76 +4,95 @@
   position: fixed; bottom: 24px; right: 24px; z-index: 2147483000;
   font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   display: flex; flex-direction: column; align-items: flex-end; gap: 10px;
+  perspective: 600px;
 }
 
 /* ---------- Pikachu launcher ---------- */
-.lk-pikachu-wrap { position: relative; width: 56px; height: 56px; }
+.lk-pikachu-wrap { position: relative; width: 88px; height: 88px; }
 .lk-pikachu {
-  width: 56px; height: 56px; border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #fff7d6, #ffe9a8 55%, #ffd75e 100%);
-  border: 2px solid #f0b90b;
-  box-shadow: 0 6px 20px rgba(240, 185, 11, .45);
+  width: 88px; height: 88px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 28%, #fff9e0, #ffe27a 50%, #ffca1f 100%);
+  border: 3px solid #f0b90b;
+  box-shadow: 0 8px 22px rgba(240, 185, 11, .4), inset 0 -6px 10px rgba(180, 120, 0, .18), inset 0 4px 8px rgba(255,255,255,.6);
   cursor: pointer; display: flex; align-items: center; justify-content: center;
-  padding: 6px; transition: transform .15s ease, box-shadow .15s ease;
+  padding: 9px; transition: transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .18s ease;
+  transform-style: preserve-3d;
 }
-.lk-pikachu svg { width: 100%; height: 100%; }
-.lk-pikachu:hover { transform: scale(1.07) rotate(-2deg); box-shadow: 0 8px 26px rgba(240, 185, 11, .6); }
-.lk-pikachu:active { transform: scale(0.96); }
+.lk-pikachu svg { width: 100%; height: 100%; filter: drop-shadow(0 2px 3px rgba(0,0,0,.15)); }
+.lk-pikachu:hover { transform: scale(1.08) rotate(-3deg); box-shadow: 0 10px 28px rgba(240, 185, 11, .55), inset 0 -6px 10px rgba(180, 120, 0, .18), inset 0 4px 8px rgba(255,255,255,.6); }
+.lk-pikachu:active { transform: scale(0.95); }
 .lk-pikachu:focus-visible { outline: 3px solid #4f46e5; outline-offset: 3px; }
 
-.lk-pikachu.charging { animation: lk-pulse 0.9s ease-in-out infinite; }
-.lk-pikachu.burst { animation: lk-burst 0.55s ease-out; }
-.lk-pikachu.shake { animation: lk-shake 0.45s ease-in-out; }
+.lk-pikachu.charging { animation: lk-charge 0.8s cubic-bezier(.45,0,.55,1) infinite; }
+.lk-pikachu.burst { animation: lk-burst 0.85s cubic-bezier(.22,1,.36,1); }
+.lk-pikachu.shake { animation: lk-shake 0.5s ease-in-out; }
 
-@keyframes lk-pulse {
-  0%, 100% { box-shadow: 0 6px 20px rgba(240,185,11,.45); }
-  50% { box-shadow: 0 0 0 10px rgba(255,225,77,.25), 0 6px 28px rgba(240,185,11,.7); }
+@keyframes lk-charge {
+  0%, 100% { transform: scale(1) rotate3d(0,1,0,0deg); box-shadow: 0 8px 22px rgba(240,185,11,.4), inset 0 -6px 10px rgba(180,120,0,.18), inset 0 4px 8px rgba(255,255,255,.6); }
+  50% { transform: scale(1.06) rotate3d(0,1,0,8deg); box-shadow: 0 0 0 14px rgba(255,225,77,.22), 0 10px 30px rgba(240,185,11,.65), inset 0 -6px 10px rgba(180,120,0,.18), inset 0 4px 8px rgba(255,255,255,.6); }
 }
 @keyframes lk-burst {
-  0% { transform: scale(1); }
-  35% { transform: scale(1.22); box-shadow: 0 0 0 16px rgba(255,225,77,.35), 0 10px 30px rgba(240,185,11,.8); }
-  100% { transform: scale(1); }
+  0% { transform: scale(1) rotate3d(1,1,0,0deg); }
+  30% { transform: scale(1.32) rotate3d(1,1,0,10deg); box-shadow: 0 0 0 22px rgba(255,225,77,.32), 0 16px 40px rgba(240,185,11,.75), inset 0 -6px 10px rgba(180,120,0,.18), inset 0 4px 8px rgba(255,255,255,.6); }
+  60% { transform: scale(0.96) rotate3d(1,1,0,-4deg); }
+  100% { transform: scale(1) rotate3d(0,0,0,0deg); }
 }
 @keyframes lk-shake {
-  0%, 100% { transform: translateX(0); }
-  20% { transform: translateX(-4px) rotate(-3deg); }
-  40% { transform: translateX(4px) rotate(3deg); }
-  60% { transform: translateX(-3px) rotate(-2deg); }
-  80% { transform: translateX(3px) rotate(2deg); }
+  0%, 100% { transform: translateX(0) rotate(0); }
+  20% { transform: translateX(-5px) rotate(-4deg); }
+  40% { transform: translateX(5px) rotate(4deg); }
+  60% { transform: translateX(-4px) rotate(-2deg); }
+  80% { transform: translateX(4px) rotate(2deg); }
 }
 
-/* Thunderbolt burst: several bolt glyphs radiating out, only during Generate. */
-.lk-bolts { position: absolute; inset: -30px; pointer-events: none; opacity: 0; }
+/* Thunderbolt burst: a screen-space flash plus several bolt glyphs radiating
+   out with a slight 3D rotation, only during Generate. */
+.lk-flash {
+  position: absolute; inset: -40px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(255,236,140,.85), rgba(255,202,31,.35) 45%, transparent 72%);
+  opacity: 0; transform: scale(0.4);
+}
+.lk-flash.active { animation: lk-flash-pop 0.6s cubic-bezier(.22,1,.36,1); }
+@keyframes lk-flash-pop {
+  0% { opacity: 0; transform: scale(0.4); }
+  30% { opacity: 1; transform: scale(1.15); }
+  100% { opacity: 0; transform: scale(1.6); }
+}
+
+.lk-bolts { position: absolute; inset: -46px; pointer-events: none; opacity: 0; }
 .lk-bolts.active { opacity: 1; }
 .lk-bolt {
-  position: absolute; width: 22px; height: 22px; top: 50%; left: 50%;
+  position: absolute; width: 30px; height: 30px; top: 50%; left: 50%;
   transform: translate(-50%, -50%) scale(0);
-  filter: drop-shadow(0 0 4px rgba(255, 225, 77, .9));
+  filter: drop-shadow(0 0 6px rgba(255, 225, 77, .95)) drop-shadow(0 2px 3px rgba(0,0,0,.25));
 }
-.lk-bolts.active .lk-bolt { animation: lk-bolt-fly 0.7s ease-out forwards; }
-.lk-bolt:nth-child(1) { animation-delay: 0ms; --tx: -46px; --ty: -34px; --rot: -25deg; }
-.lk-bolt:nth-child(2) { animation-delay: 40ms; --tx: 46px; --ty: -34px; --rot: 20deg; }
-.lk-bolt:nth-child(3) { animation-delay: 80ms; --tx: -50px; --ty: 20px; --rot: -10deg; }
-.lk-bolt:nth-child(4) { animation-delay: 120ms; --tx: 50px; --ty: 20px; --rot: 15deg; }
-.lk-bolt:nth-child(5) { animation-delay: 60ms; --tx: 0px; --ty: -56px; --rot: 0deg; }
+.lk-bolts.active .lk-bolt { animation: lk-bolt-fly 0.85s cubic-bezier(.22,1,.36,1) forwards; }
+.lk-bolt:nth-child(1) { animation-delay: 0ms;   --tx: -64px; --ty: -46px; --rot: -30deg; }
+.lk-bolt:nth-child(2) { animation-delay: 50ms;  --tx: 64px;  --ty: -46px; --rot: 25deg; }
+.lk-bolt:nth-child(3) { animation-delay: 100ms; --tx: -70px; --ty: 28px;  --rot: -12deg; }
+.lk-bolt:nth-child(4) { animation-delay: 150ms; --tx: 70px;  --ty: 28px;  --rot: 18deg; }
+.lk-bolt:nth-child(5) { animation-delay: 70ms;  --tx: 0px;   --ty: -78px; --rot: 0deg; }
+.lk-bolt:nth-child(6) { animation-delay: 120ms; --tx: -30px; --ty: 66px;  --rot: -18deg; }
+.lk-bolt:nth-child(7) { animation-delay: 40ms;  --tx: 30px;  --ty: 66px;  --rot: 14deg; }
 @keyframes lk-bolt-fly {
   0% { transform: translate(-50%, -50%) scale(0) rotate(0deg); opacity: 0; }
-  20% { opacity: 1; }
+  18% { opacity: 1; transform: translate(-50%, -50%) scale(1.15) rotate(calc(var(--rot) * 0.3)); }
   100% {
-    transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(1) rotate(var(--rot));
+    transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0.7) rotate(var(--rot));
     opacity: 0;
   }
 }
 
 /* ---------- + button ---------- */
 .lk-plus {
-  position: absolute; bottom: -2px; right: -2px; width: 24px; height: 24px;
-  border-radius: 50%; background: #4f46e5; color: #fff; border: 2px solid var(--lk-bg, #fff);
-  font: 700 15px/1 system-ui, sans-serif; cursor: pointer;
+  position: absolute; bottom: -2px; right: -2px; width: 30px; height: 30px;
+  border-radius: 50%; background: #4f46e5; color: #fff; border: 3px solid var(--lk-bg, #fff);
+  font: 700 18px/1 system-ui, sans-serif; cursor: pointer;
   display: flex; align-items: center; justify-content: center; padding: 0;
   box-shadow: 0 2px 8px rgba(0,0,0,.25);
+  transition: transform .15s cubic-bezier(.34,1.56,.64,1), background .15s ease;
 }
-.lk-plus:hover { background: #4338ca; }
+.lk-plus:hover { background: #4338ca; transform: scale(1.1); }
 .lk-plus:focus-visible { outline: 2px solid #4f46e5; outline-offset: 2px; }
 
 /* ---------- menu ---------- */
@@ -117,4 +136,8 @@
   .lk-menu button:hover { background: #23252e; border-color: #2a2c34; }
   .lk-steps li.active { color: #e6e7eb; }
   .lk-plus { border-color: #14151a; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lk-pikachu, .lk-plus, .lk-flash, .lk-bolt { animation: none !important; transition: none !important; }
 }

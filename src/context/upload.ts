@@ -7,7 +7,23 @@ import type { LatestContext, UploadResult, UploadProgress } from "./types";
 import { detectPlatform } from "./extract/platforms";
 import { insertIntoInput } from "../content/insert";
 
-const MAX_CHUNK_CHARS = 20_000;
+// Larger than before on purpose: each execCommand('insertText', …) call into
+// a React-controlled editor (ChatGPT/Claude/Gemini all use one) is expensive
+// — it triggers the framework's synchronous input/state-sync cycle. Doing
+// several of those back-to-back with no yield between them is what froze the
+// tab for several seconds on large contexts. Fewer, larger calls plus an
+// explicit yield between them (see uploadContext below) fixes both: most
+// real conversations now fit in a single call, and when chunking is still
+// needed the browser gets a chance to paint/process between each one so the
+// page never looks unresponsive.
+const MAX_CHUNK_CHARS = 60_000;
+
+/** Yield to the browser (paint + pending work) before the next heavy insert. */
+function yieldToBrowser(): Promise<void> {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  });
+}
 
 export function splitIntoChunks(text: string, maxChars: number): string[] {
   if (text.length <= maxChars) return [text];
@@ -64,16 +80,23 @@ export async function uploadContext(
     return { success: false, reason: `Could not find a compatible input on ${platform.label}. The page layout may have changed.` };
   }
 
-  onProgress({ stage: "transfer", label: "Transferring context…" });
   const baseline = getInputLength(input);
   const chunks = splitIntoChunks(context.markdown, MAX_CHUNK_CHARS);
 
   let ok = true;
-  chunks.forEach((chunk, i) => {
+  for (let i = 0; i < chunks.length; i++) {
+    onProgress({
+      stage: "transfer",
+      label: chunks.length > 1 ? `Transferring context… (${i + 1}/${chunks.length})` : "Transferring context…",
+    });
+    // Let the browser paint/process the previous insertion before the next
+    // heavy one — this is what keeps the tab responsive on large contexts
+    // instead of freezing through several back-to-back synchronous inserts.
+    if (i > 0) await yieldToBrowser();
     const mode = i === 0 ? insertMode : "append";
-    const success = insertIntoInput(input, chunk, mode);
+    const success = insertIntoInput(input, chunks[i], mode);
     if (!success) ok = false;
-  });
+  }
 
   if (!ok) {
     return { success: false, reason: "The destination editor rejected the automatic transfer." };

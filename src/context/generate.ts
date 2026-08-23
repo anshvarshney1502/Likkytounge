@@ -50,7 +50,8 @@ export async function generateContext(
 
   onProgress({ stage: "format", label: "Formatting as Markdown…" });
   const title = platform.getTitle(document);
-  const markdown = messagesToMarkdown(messages, title);
+  const capturedAt = new Date().toISOString();
+  const markdown = messagesToMarkdown(messages, { title, platformLabel: platform.label, capturedAt });
 
   const context: LatestContext = {
     markdown,
@@ -59,7 +60,7 @@ export async function generateContext(
     conversationUrl: location.href,
     conversationTitle: title,
     messageCount: messages.length,
-    capturedAt: new Date().toISOString(),
+    capturedAt,
     truncated: loadResult.truncated,
     truncatedReason: loadResult.reason,
   };

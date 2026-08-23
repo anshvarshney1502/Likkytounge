@@ -23,6 +23,10 @@
       <span class="lc-label">Latest</span>
       <span class="lc-title" id="lc-title"></span>
       <span class="lc-meta" id="lc-meta"></span>
+      <div class="lc-actions">
+        <button id="lc-copy" class="btn small" type="button">Copy</button>
+        <button id="lc-share" class="btn small" type="button">Share</button>
+      </div>
     </div>
 
     <p id="popup-empty" class="popup-empty" hidden>
@@ -36,6 +40,7 @@
       <a id="open-about" href="#">About</a>
     </div>
   </main>
+  <div class="toast-host"><div class="toast" id="toast"></div></div>
   <script src="./popup.js"></script>
 </body>
 </html>
