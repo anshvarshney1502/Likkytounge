@@ -12,7 +12,7 @@ import { pikachuImgTag } from "./pikachu-icon";
 import { BOLT_SVG } from "./thunderbolt-icon";
 import overlayCss from "./overlay.css";
 
-const HOST_ID = "likky-tounge-host";
+const HOST_ID = "context-bolt-host";
 
 let root: ShadowRoot | null = null;
 let rootEl: HTMLElement | null = null;

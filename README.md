@@ -1,4 +1,4 @@
-# Likky Tounge
+# Context-Bolt
 
 **Pikachu remembers your conversation, and carries it to any other AI chat.** A free, open-source, privacy-first Chrome extension. Click Pikachu to capture your entire current ChatGPT/Claude/Gemini/DeepSeek conversation; switch to another supported LLM, click **Upload Context**, and the whole thing lands in the new chat's input automatically — no file picker, no drag-and-drop, no copy-paste. Every generated context is saved in a searchable, premium **Context Library**, rendered as a readable document rather than raw Markdown.
 

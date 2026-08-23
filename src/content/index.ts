@@ -10,7 +10,7 @@ if (!window.__likkyContentLoaded) {
   // Boot after DOM is ready-ish. Sites often SPA-navigate, so also boot on
   // subsequent history changes if the launcher gets removed.
   const bootIfNeeded = () => {
-    if (!document.getElementById("likky-tounge-host")) void boot();
+    if (!document.getElementById("context-bolt-host")) void boot();
   };
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", bootIfNeeded, { once: true });

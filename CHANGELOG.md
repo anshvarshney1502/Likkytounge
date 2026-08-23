@@ -12,6 +12,18 @@ semantic versioning once it reaches 1.0.
 - Per-context version history (currently only the single "latest" pointer is tracked; every generation is kept, but not edited-in-place history of the same context).
 - Real text extraction from generated file attachments (PDF/PPT/DOCX) — currently out of scope to keep the extension dependency-free; only filenames/links and any artifact-panel text already visible in the page are captured.
 
+## [0.6.0] — 2026-08-23
+
+### Fixed
+- **Claude Upload Context created a duplicate attachment and still reported a timeout.** `attachContextAsFile` (`src/content/attach.ts`) tried its three delivery strategies (file-input → paste → drop) in sequence, giving each only a slice of the total timeout before moving on if confirmation hadn't arrived yet. On Claude, the file-input upload round-trips to a server and is slower to render its chip than that slice allowed, so the code moved on to the paste strategy — which succeeded fast — while the original file-input upload was still in flight and later landed too, producing two attachments (Claude disambiguated the second with a timestamp prefix, visible in the reported screenshot). Fixed by committing fully to the first strategy whose dispatch actually goes through: a strategy is now only skipped in favour of the next when `run()` itself reports it doesn't apply (no matching element), never because confirmation is merely slow. This makes duplicate delivery structurally impossible — at most one strategy is ever dispatched per attach.
+- The same bug's timeout message ("did not confirm within 60s") could fire even after the attachment visibly succeeded, because the `MutationObserver` watching for the attachment chip was scoped to `composer.closest("form") ?? composer.parentElement` — too narrow when a site (Claude) renders the chip in a sibling wrapper several levels above the composer rather than a `<form>` ancestor or immediate parent. `findObserveRoot()` now walks up a fixed handful of ancestors from the composer, wide enough to catch a typical composer+toolbar+preview wrapper without reaching all the way to `document.body` (which would pick up unrelated churn from the message stream).
+- Added a regression test (`tests/attach.test.ts`) modelling the exact reported scenario — a slow file-input upload alongside a composer that would also accept a fast paste — asserting only one attachment strategy is ever dispatched and only one chip results.
+
+### Changed
+- Rebranded the extension from "Likky Tounge" to **Context-Bolt** across the manifest, popup, sidebar, about page, README, and package metadata. Version bumped to 0.6.0 to mark the rename.
+- Replaced the placeholder procedurally-drawn "vault" icon with real extension icons (16/32/48/128) generated from the new Context-Bolt lightning-bolt artwork. `scripts/gen-icons.mjs` now keys out the source JPEG's white background, crops to the bolt's bounding box, and box-filter downscales to each size — dependency-free, same approach as `make-pikachu.mjs`. Source art lives in `public/source-art/` and is excluded from the packaged build (`scripts/build.mjs`).
+- The Pikachu on-page launcher/mascot is unchanged — this rebrand covers the product name and extension icon, not the Generate/Upload Context character.
+
 ## [0.5.4] — 2026-08-23
 
 ### Fixed — Upload Context froze the page *and* dumped raw markdown into the chat box

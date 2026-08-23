@@ -59,23 +59,46 @@ function filesPresent(doc: Document): boolean {
 }
 
 /**
+ * Picks the container to watch for an attachment chip.
+ *
+ * A single `composer.parentElement` is too narrow on sites (Claude among
+ * them) that render the attachment preview row as a sibling a few levels
+ * further up, not as a direct sibling of the editable itself — which was
+ * why a real, successful attachment could still time out. Watching all the
+ * way up at `document.body` fixes that but starts picking up unrelated
+ * churn from the message stream. Walking up a fixed handful of ancestors
+ * splits the difference: enough room for a composer's toolbar/preview
+ * wrapper, not enough to reach the conversation history.
+ */
+function findObserveRoot(composer: HTMLElement | null): Element {
+  const form = composer?.closest("form");
+  if (form) return form;
+  let node: Element | null = composer?.parentElement ?? null;
+  let root: Element = node ?? document.body;
+  for (let i = 0; i < 4 && node; i++) {
+    root = node;
+    node = node.parentElement;
+  }
+  return root;
+}
+
+/**
  * Watches for an attachment chip appearing near the composer.
  *
  * Matching on the file's *content* (or its name, which is derived from the
  * conversation title) is not usable here: the page already displays that
  * same conversation title in its header and sidebar, so a text search would
  * report success before anything was ever attached. Watching for newly
- * inserted elements within the composer's own form is content-agnostic and
- * scoped tightly enough to ignore unrelated page churn such as the message
- * stream, which lives outside the form.
+ * inserted elements near the composer is content-agnostic and scoped
+ * tightly enough to ignore unrelated page churn such as the message
+ * stream, which lives outside that region.
  *
  * Additions *inside* the editable itself are deliberately not counted — text
  * landing in the message box is precisely the outcome we are avoiding.
  */
 function watchForAttachment(composer: HTMLElement | null): { saw: () => boolean; reset: () => void; stop: () => void } {
-  const host = document.getElementById("likky-tounge-host");
-  const container =
-    composer?.closest("form") ?? composer?.parentElement ?? document.body;
+  const host = document.getElementById("context-bolt-host");
+  const container = findObserveRoot(composer);
 
   let seen = false;
   const obs = new MutationObserver((records) => {
@@ -179,45 +202,40 @@ export async function attachContextAsFile(
   const watcher = watchForAttachment(composer);
   const confirmed = () => filesPresent(document) || watcher.saw();
 
-  // Give each strategy a slice of the budget, then keep waiting on the last
-  // one — an upload the site is still processing should not be abandoned
-  // just because our first probe came back empty.
-  const perAttempt = Math.max(2_000, Math.floor(timeoutMs / (attempts.length + 2)));
-
   try {
+    // Try each strategy in order, but commit fully to the first one whose
+    // dispatch actually goes through: once a site has started acting on a
+    // delivery (even slowly — Claude's file upload round-trips to a
+    // server before it renders a chip), racing a second delivery channel
+    // for the *same* file risks both eventually landing, producing a
+    // duplicate attachment. So a strategy is only skipped in favour of the
+    // next when `run()` itself reports it doesn't apply here (no matching
+    // element, DataTransfer construction failed) — never because
+    // confirmation is merely slow.
     for (let i = 0; i < attempts.length; i++) {
       const { strategy, run } = attempts[i];
       watcher.reset();
       if (!run()) continue;
 
-      const deadline = Math.min(Date.now() + perAttempt, started + timeoutMs);
-      while (Date.now() < deadline) {
+      while (Date.now() - started < timeoutMs) {
         await sleep(250);
         opts.onTick?.(Date.now() - started);
         if (confirmed()) {
           return { ok: true, strategy, elapsedMs: Date.now() - started };
         }
       }
-      if (Date.now() - started >= timeoutMs) break;
-    }
 
-    // Final grace period: the last strategy may still be uploading.
-    while (Date.now() - started < timeoutMs) {
-      await sleep(250);
-      opts.onTick?.(Date.now() - started);
-      if (confirmed()) {
-        return {
-          ok: true,
-          strategy: attempts[attempts.length - 1].strategy,
-          elapsedMs: Date.now() - started,
-        };
-      }
+      return {
+        ok: false,
+        elapsedMs: Date.now() - started,
+        reason: `The page did not confirm the attachment within ${Math.round(timeoutMs / 1000)}s.`,
+      };
     }
 
     return {
       ok: false,
       elapsedMs: Date.now() - started,
-      reason: `The page did not confirm the attachment within ${Math.round(timeoutMs / 1000)}s.`,
+      reason: "No file input or chat composer accepted the attachment.",
     };
   } finally {
     watcher.stop();

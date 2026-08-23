@@ -57,7 +57,59 @@ describe("buildContextFile", () => {
   });
 });
 
+/**
+ * A site (modelled on the reported Claude bug) with BOTH a working file
+ * input and a composer that also turns a paste into a real attachment.
+ * The file input is slow — it renders its chip only after a delay, like a
+ * server round-trip — while paste would resolve almost immediately if it
+ * were ever tried. If both strategies are attempted, two separate chips
+ * land; the fix is to commit to whichever strategy dispatched first and
+ * never fall through to the second once that has happened.
+ */
+function siteWithSlowFileInputAndFastPaste(): { input: HTMLInputElement; composer: HTMLElement } {
+  const input = document.createElement("input");
+  input.type = "file";
+  document.body.appendChild(input);
+  input.addEventListener("change", () => {
+    const name = input.files?.[0]?.name ?? "";
+    // Real sites typically read the file into their own state and clear
+    // the input immediately, so `filesPresent()` can't be relied on for a
+    // slow upload — confirmation has to come from the chip itself.
+    input.files = null;
+    setTimeout(() => {
+      const chip = document.createElement("div");
+      chip.className = "attachment-chip";
+      chip.textContent = name;
+      document.body.appendChild(chip);
+    }, 900);
+  });
+
+  const composer = document.createElement("div");
+  composer.setAttribute("contenteditable", "true");
+  document.body.appendChild(composer);
+  composer.addEventListener("paste", (e) => {
+    const dt = (e as ClipboardEvent).clipboardData;
+    if (!dt?.files?.[0]) return;
+    const chip = document.createElement("div");
+    chip.className = "pasted-card";
+    document.body.appendChild(chip);
+    e.preventDefault();
+  });
+
+  return { input, composer };
+}
+
 describe("attachContextAsFile", () => {
+  it("commits to the first strategy that dispatches instead of racing a second one (Claude duplicate-attachment regression)", async () => {
+    const { composer } = siteWithSlowFileInputAndFastPaste();
+    const res = await attachContextAsFile(MD, "Dup test", composer, { timeoutMs: 4000 });
+
+    expect(res.ok).toBe(true);
+    expect(res.strategy).toBe("file-input");
+    expect(document.querySelectorAll(".attachment-chip").length).toBe(1);
+    expect(document.querySelectorAll(".pasted-card").length).toBe(0);
+  });
+
   it("delivers the context through the site's file input", async () => {
     const input = siteWithFileInput();
     const res = await attachContextAsFile(MD, "Test chat", null, { timeoutMs: 4000 });

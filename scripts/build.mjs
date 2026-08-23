@@ -26,7 +26,10 @@ async function copyStatic() {
   if (!existsSync(join(root, "public/icons/icon16.png"))) {
     execFileSync("node", ["scripts/gen-icons.mjs"], { cwd: root, stdio: "inherit" });
   }
-  await cp(join(root, "public"), dist, { recursive: true });
+  await cp(join(root, "public"), dist, {
+    recursive: true,
+    filter: (src) => !src.includes(`${join(root, "public", "source-art")}`),
+  });
 }
 
 const common = {

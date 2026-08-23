@@ -15,7 +15,7 @@ export function renderAboutView(main: HTMLElement, onBack: () => void): void {
       <div class="app-page-topbar"><span class="back-link" id="a-back">← Back</span><strong>About</strong></div>
       <div class="app-page-inner">
         <div class="about-hero">
-          <h1>Likky Tounge</h1>
+          <h1>Context-Bolt</h1>
           <p class="lead">Captures, preserves, and carries your AI conversations across the tools you use every day.</p>
         </div>
 

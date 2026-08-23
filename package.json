@@ -1,7 +1,7 @@
 {
-  "name": "likky-tounge",
-  "version": "0.5.4",
-  "description": "Likky Tounge — Pikachu captures your whole AI conversation and carries it to any other supported LLM with one click. Privacy-first, open source, 100% local.",
+  "name": "context-bolt",
+  "version": "0.6.0",
+  "description": "Context-Bolt — Pikachu captures your whole AI conversation and carries it to any other supported LLM with one click. Privacy-first, open source, 100% local.",
   "license": "MIT",
   "private": true,
   "type": "module",
