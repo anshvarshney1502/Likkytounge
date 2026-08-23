@@ -252,10 +252,9 @@ async function onSearchInput(): Promise<void> {
 }
 
 function onOutsideClick(e: Event): void {
-  // Only close if click is truly outside the menu (not inside shadow DOM)
-  if (menuEl && root && e.target instanceof Node) {
-    if (root.contains(e.target) || menuEl.contains(e.target)) return;
-  }
+  // Check if click is inside the shadow root using composedPath
+  const path = e.composedPath?.() || [];
+  if (path.includes(rootEl!)) return; // Click is inside shadow DOM
   closeMenu();
 }
 function onGlobalKey(e: KeyboardEvent): void {
