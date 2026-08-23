@@ -19,15 +19,20 @@
   font: 14px/1.5 var(--cb-font);
   display: flex; flex-direction: column; align-items: flex-end; gap: 10px;
 }
+/* When Pikachu is dragged to the top half of the screen, open menu below it. */
+.lk-root.lk-root--below { flex-direction: column-reverse; }
 
 /* ---------- Pikachu launcher ----------
    The artwork is a "peeking" pose, so the launcher is presented as Pikachu
    peeking up from the corner rather than being squeezed into a circle.
-   A 3D perspective wrapper gives the generate animation real depth. */
+   A 3D perspective wrapper gives the generate animation real depth.
+   The wrap is the drag handle — cursor: grab shows the user it is movable. */
 .lk-pikachu-wrap {
   position: relative; width: 132px; height: 82px;
   perspective: 700px; perspective-origin: 50% 80%;
+  cursor: grab;
 }
+.lk-pikachu-wrap:active { cursor: grabbing; }
 .lk-pikachu {
   position: relative; width: 100%; height: 100%;
   border: none; background: transparent; padding: 0; cursor: pointer;

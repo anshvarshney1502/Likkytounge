@@ -32,6 +32,82 @@ let settingsCache: Settings | null = null;
 // async calls that complete after a later call has already started.
 let searchSeq = 0;
 
+// ----------------------------------------------------------------- drag --
+const POS_KEY = "lk-pikachu-pos";
+// Set to true on the frame a drag completes so click handlers can ignore it.
+let dragMoved = false;
+
+function loadPos(): { x: number; y: number } | null {
+  try {
+    const raw = localStorage.getItem(POS_KEY);
+    return raw ? (JSON.parse(raw) as { x: number; y: number }) : null;
+  } catch { return null; }
+}
+
+function savePos(x: number, y: number): void {
+  try { localStorage.setItem(POS_KEY, JSON.stringify({ x, y })); } catch {}
+}
+
+function applyPos(x: number, y: number): void {
+  if (!rootEl) return;
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+  const rw = rootEl.offsetWidth || 160;
+  const rh = rootEl.offsetHeight || 100;
+  const cx = Math.max(0, Math.min(x, W - rw));
+  const cy = Math.max(0, Math.min(y, H - rh));
+  rootEl.style.left   = cx + "px";
+  rootEl.style.top    = cy + "px";
+  rootEl.style.right  = "auto";
+  rootEl.style.bottom = "auto";
+  // When Pikachu is in the top half, open the menu below it; otherwise above.
+  rootEl.classList.toggle("lk-root--below", cy < H / 2);
+}
+
+function initDrag(): void {
+  const wrap = root!.querySelector<HTMLElement>(".lk-pikachu-wrap");
+  if (!wrap) return;
+
+  let active = false;
+  let startMX = 0, startMY = 0, startLeft = 0, startTop = 0;
+
+  function onMove(e: MouseEvent): void {
+    if (!active) return;
+    const dx = e.clientX - startMX;
+    const dy = e.clientY - startMY;
+    if (!dragMoved && Math.hypot(dx, dy) < 5) return;
+    dragMoved = true;
+    document.documentElement.style.cursor = "grabbing";
+    applyPos(startLeft + dx, startTop + dy);
+  }
+
+  function onUp(): void {
+    if (!active) return;
+    active = false;
+    document.documentElement.style.cursor = "";
+    document.removeEventListener("mousemove", onMove, true);
+    document.removeEventListener("mouseup",   onUp,   true);
+    if (dragMoved && rootEl) {
+      const r = rootEl.getBoundingClientRect();
+      savePos(r.left, r.top);
+    }
+  }
+
+  wrap.addEventListener("mousedown", (e) => {
+    if (e.button !== 0) return;
+    active    = true;
+    dragMoved = false;
+    startMX   = e.clientX;
+    startMY   = e.clientY;
+    const r   = rootEl!.getBoundingClientRect();
+    startLeft = r.left;
+    startTop  = r.top;
+    document.addEventListener("mousemove", onMove, true);
+    document.addEventListener("mouseup",   onUp,   true);
+    // Don't preventDefault — lets the click still fire for non-drag taps.
+  });
+}
+
 function fmtWhen(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
@@ -172,10 +248,12 @@ function mount(): void {
   // triggered explicitly from the menu below.
   pikachuEl!.addEventListener("click", (e) => {
     e.stopPropagation();
+    if (dragMoved) { dragMoved = false; return; } // drag just ended — not a click
     toggleMenu();
   });
   root.getElementById("lk-plus")!.addEventListener("click", (e) => {
     e.stopPropagation();
+    if (dragMoved) { dragMoved = false; return; }
     toggleMenu();
   });
   root.getElementById("lk-panel-close")!.addEventListener("click", closePanel);
@@ -191,12 +269,18 @@ function mount(): void {
     else if (action === "library") void sendMsg({ type: "OPEN_LIBRARY" });
   });
   searchInputEl!.addEventListener("input", () => void onSearchInput());
-  searchInputEl!.addEventListener("focus", () => void onSearchInput());
-  // Removed blur listener: heavily dynamic host pages (like ChatGPT) often steal focus 
+  searchInputEl!.addEventListener("focus", () => {
+    // Guard: only trigger search when the menu is actually open. This prevents
+    // a spurious fetch if the browser auto-focuses the input on some pages.
+    if (!menuEl?.classList.contains("open")) return;
+    void onSearchInput();
+  });
+  // Removed blur listener: heavily dynamic host pages (like ChatGPT) often steal focus
   // and force it back to their own chat inputs. Relying on blur to close the search panel
   // causes aggressive flickering and closing. The panel will stay open until explicitly
   // closed by clicking outside or pressing Escape.
   searchInputEl!.addEventListener("click", (e) => e.stopPropagation());
+  searchInputEl!.addEventListener("mousedown", (e) => e.stopPropagation());
   searchInputEl!.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       closeMenu();
@@ -204,7 +288,12 @@ function mount(): void {
     e.stopPropagation();
   });
   searchInputEl!.addEventListener("keyup", (e) => e.stopPropagation());
-  menuEl!.addEventListener("click", (e) => e.stopPropagation());
+  // stopPropagation on both click AND mousedown: some SPA frameworks (ChatGPT)
+  // use document-level mousedown capture to detect outside interactions and
+  // programmatically refocus their own inputs, which can indirectly trigger a
+  // synthetic click that closes our menu.
+  menuEl!.addEventListener("click",     (e) => e.stopPropagation());
+  menuEl!.addEventListener("mousedown", (e) => e.stopPropagation());
   resultsEl!.addEventListener("click", (e) => {
     e.stopPropagation();
     const row = (e.target as HTMLElement).closest<HTMLElement>("[data-upload-id]");
@@ -216,6 +305,12 @@ function mount(): void {
 
   document.addEventListener("click", onOutsideClick, true);
   document.addEventListener("keydown", onGlobalKey, true);
+
+  // Restore last-saved position; if none, the CSS default (bottom-right) applies.
+  const savedPos = loadPos();
+  if (savedPos) applyPos(savedPos.x, savedPos.y);
+
+  initDrag();
 }
 
 function unmount(): void {
@@ -313,6 +408,12 @@ function buildResultRows(items: SavedContextMeta[], showQuery: boolean): string 
 }
 
 function onOutsideClick(e: Event): void {
+  // Ignore synthetic/programmatic clicks (isTrusted: false).
+  // SPA frameworks like ChatGPT/Gemini dispatch synthetic document clicks when
+  // they detect focus leaving their own inputs — without this guard those fake
+  // clicks close our menu immediately after the user focuses the search bar.
+  if (!(e as MouseEvent).isTrusted) return;
+
   // composedPath() includes shadow-DOM internals even for document-level
   // capture listeners. We check the shadow *host* element — it's always in the
   // path for any click that originates inside our shadow root.
