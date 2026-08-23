@@ -39,6 +39,14 @@ export async function renderSettingsView(
               <div><div class="label">Show the Pikachu launcher</div><div class="desc">Appears on supported AI sites.</div></div>
               ${switchHtml("sw-launcher", settings.showLauncher)}
             </div>
+            <div class="settings-row field" style="margin:0;">
+              <label for="pikachuSize">Pikachu size</label>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <input type="range" id="pikachuSize" min="0.5" max="2" step="0.1" value="${settings.pikachuSize}" style="flex:1;">
+                <span id="pikachuSizeLabel" class="muted" style="min-width:36px;text-align:right;font-size:13px;">${Math.round(settings.pikachuSize * 100)}%</span>
+              </div>
+              <p class="hint">Resize the on-page Pikachu icon. Takes effect on next page load.</p>
+            </div>
           </div>
         </section>
 
@@ -152,6 +160,13 @@ export async function renderSettingsView(
   const save = (patch: Partial<Settings>) => void setSettings(patch);
 
   wireSwitch(main, "sw-launcher", (v) => save({ showLauncher: v }));
+  const sizeSlider = main.querySelector<HTMLInputElement>("#pikachuSize")!;
+  const sizeLabel = main.querySelector<HTMLElement>("#pikachuSizeLabel")!;
+  sizeSlider.addEventListener("input", () => {
+    const val = parseFloat(sizeSlider.value);
+    sizeLabel.textContent = Math.round(val * 100) + "%";
+    save({ pikachuSize: val });
+  });
   wireSwitch(main, "sw-titles", (v) => save({ autoGenerateTitles: v }));
   wireSwitch(main, "sw-preview", (v) => save({ showLastContextPreview: v }));
   wireSwitch(main, "sw-motion", (v) => {

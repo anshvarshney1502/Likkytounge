@@ -34,8 +34,8 @@ let searchSeq = 0;
 
 // ----------------------------------------------------------------- drag --
 const POS_KEY = "lk-pikachu-pos";
-// Set to true on the frame a drag completes so click handlers can ignore it.
 let dragMoved = false;
+let pikachuWrapEl: HTMLElement | null = null;
 
 function loadPos(): { x: number; y: number } | null {
   try {
@@ -48,25 +48,52 @@ function savePos(x: number, y: number): void {
   try { localStorage.setItem(POS_KEY, JSON.stringify({ x, y })); } catch {}
 }
 
+function getPikaSize(): { w: number; h: number } {
+  if (pikachuWrapEl) return { w: pikachuWrapEl.offsetWidth, h: pikachuWrapEl.offsetHeight };
+  return { w: 132, h: 82 };
+}
+
 function applyPos(x: number, y: number): void {
   if (!rootEl) return;
   const W = window.innerWidth;
   const H = window.innerHeight;
-  const rw = rootEl.offsetWidth || 160;
-  const rh = rootEl.offsetHeight || 100;
-  const cx = Math.max(0, Math.min(x, W - rw));
-  const cy = Math.max(0, Math.min(y, H - rh));
+  const { w, h } = getPikaSize();
+  const cx = Math.max(0, Math.min(x, W - w));
+  const cy = Math.max(0, Math.min(y, H - h));
   rootEl.style.left   = cx + "px";
   rootEl.style.top    = cy + "px";
   rootEl.style.right  = "auto";
   rootEl.style.bottom = "auto";
-  // When Pikachu is in the top half, open the menu below it; otherwise above.
-  rootEl.classList.toggle("lk-root--below", cy < H / 2);
+  updatePanelAlignment(cx, cy);
+}
+
+function updatePanelAlignment(cx: number, cy: number): void {
+  if (!rootEl) return;
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+  const openBelow = cy < H / 2;
+  const alignLeft = cx > W / 2;
+  rootEl.classList.toggle("lk-root--below", openBelow);
+  rootEl.classList.toggle("lk-root--left", alignLeft);
+}
+
+function clampToViewport(): void {
+  if (!rootEl) return;
+  const r = rootEl.getBoundingClientRect();
+  applyPos(r.left, r.top);
+  savePos(r.left, r.top);
+}
+
+function onWindowResize(): void { clampToViewport(); }
+
+function applyScale(scale: number): void {
+  if (!pikachuWrapEl) return;
+  pikachuWrapEl.style.transform = scale === 1 ? "" : `scale(${scale})`;
+  pikachuWrapEl.style.transformOrigin = "bottom right";
 }
 
 function initDrag(): void {
-  const wrap = root!.querySelector<HTMLElement>(".lk-pikachu-wrap");
-  if (!wrap) return;
+  if (!pikachuWrapEl) return;
 
   let active = false;
   let startMX = 0, startMY = 0, startLeft = 0, startTop = 0;
@@ -93,7 +120,7 @@ function initDrag(): void {
     }
   }
 
-  wrap.addEventListener("mousedown", (e) => {
+  pikachuWrapEl.addEventListener("mousedown", (e) => {
     if (e.button !== 0) return;
     active    = true;
     dragMoved = false;
@@ -104,7 +131,6 @@ function initDrag(): void {
     startTop  = r.top;
     document.addEventListener("mousemove", onMove, true);
     document.addEventListener("mouseup",   onUp,   true);
-    // Don't preventDefault — lets the click still fire for non-drag taps.
   });
 }
 
@@ -305,10 +331,28 @@ function mount(): void {
 
   document.addEventListener("click", onOutsideClick, true);
   document.addEventListener("keydown", onGlobalKey, true);
+  window.addEventListener("resize", onWindowResize);
 
-  // Restore last-saved position; if none, the CSS default (bottom-right) applies.
-  const savedPos = loadPos();
-  if (savedPos) applyPos(savedPos.x, savedPos.y);
+  pikachuWrapEl = root.querySelector<HTMLElement>(".lk-pikachu-wrap");
+
+  // Apply saved size.
+  if (settingsCache?.pikachuSize && settingsCache.pikachuSize !== 1) {
+    applyScale(settingsCache.pikachuSize);
+  }
+
+  // Restore saved position. Use requestAnimationFrame so the element has been
+  // laid out and offsetWidth/Height are correct. If no saved position, place
+  // at bottom-right (the CSS default handles this via the initial fixed
+  // bottom/right, but we set explicit coords so drag always has a baseline).
+  requestAnimationFrame(() => {
+    const savedPos = loadPos();
+    if (savedPos) {
+      applyPos(savedPos.x, savedPos.y);
+    } else {
+      const { w, h } = getPikaSize();
+      applyPos(window.innerWidth - w - 20, window.innerHeight - h - 20);
+    }
+  });
 
   initDrag();
 }
@@ -317,7 +361,8 @@ function unmount(): void {
   document.getElementById(HOST_ID)?.remove();
   document.removeEventListener("click", onOutsideClick, true);
   document.removeEventListener("keydown", onGlobalKey, true);
-  root = rootEl = menuEl = actionsEl = searchInputEl = resultsEl = panelEl = panelTitleEl = stepsEl = resultEl = pikachuEl = stageEl = null;
+  window.removeEventListener("resize", onWindowResize);
+  root = rootEl = menuEl = actionsEl = searchInputEl = resultsEl = panelEl = panelTitleEl = stepsEl = resultEl = pikachuEl = stageEl = pikachuWrapEl = null;
   searchSeq = 0;
 }
 

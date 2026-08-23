@@ -19,8 +19,11 @@
   font: 14px/1.5 var(--cb-font);
   display: flex; flex-direction: column; align-items: flex-end; gap: 10px;
 }
-/* When Pikachu is dragged to the top half of the screen, open menu below it. */
+/* When Pikachu is in the top half → open menu/panel below. */
 .lk-root.lk-root--below { flex-direction: column-reverse; }
+/* When Pikachu is in the right half → align menu/panel to the right edge.
+   When Pikachu is in the left half → align to the left edge. */
+.lk-root.lk-root--left  { align-items: flex-start; }
 
 /* ---------- Pikachu launcher ----------
    The artwork is a "peeking" pose, so the launcher is presented as Pikachu

@@ -47,6 +47,8 @@ export interface Settings {
   density: "comfortable" | "compact";
   /** Disable non-essential UI animations (Thunderbolt itself is exempt — that's core UX, not decorative). */
   reduceMotion: boolean;
+  /** Scale factor for the Pikachu launcher icon (0.5 – 2.0, default 1.0). */
+  pikachuSize: number;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -59,6 +61,7 @@ export const DEFAULT_SETTINGS: Settings = {
   showLastContextPreview: true,
   density: "comfortable",
   reduceMotion: false,
+  pikachuSize: 1.0,
 };
 
 /** Portable backup shape (JSON). */
